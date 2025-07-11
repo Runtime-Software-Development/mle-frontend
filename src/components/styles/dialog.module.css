@@ -1,0 +1,123 @@
+
+/* Dialog background overlay */
+.dialog {
+    font-size: initial;
+    display: block;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    background-color: rgba(256,256,256, 0.5);
+    text-align: left;
+    z-index: 99999;
+}
+.dialog.hidden {
+    visibility: hidden;
+}
+.dialog.overlay {
+    background-color: rgba(256,256,256, 0);
+}
+
+/* Dialog content */
+.content {
+    font-weight: normal;
+    font-size: small;
+    position: absolute;
+    width: auto;
+    height: 70vh;
+    left: 18%;
+    right: 18%;
+    top: 10%;
+    bottom: 10%;
+    margin: auto;
+    background: #222222;
+    color: #EEEEEE;
+}
+.dialog.confirm .content {
+    text-align: center;
+    height: 20vh;
+    left: 30%;
+    right: 30%;
+    top: 40%;
+    bottom: 40%;
+}
+.wide .content {
+    height: 100%;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+.header {
+    height: fit-content !important;
+    padding: 3px !important;
+    margin: 0 !important;
+    text-align: right;
+    background-color: #2F4858;
+    color: #FFFFFF;
+}
+.closer {
+    background-color: transparent !important;
+    color: #FFFFFF !important;
+    padding: 6px !important;
+    margin: 0 !important;
+}
+.closer:hover {
+    opacity: 0.6;
+}
+.dialog h2.dialog-title {
+    font-weight: bold;
+    font-size: 1.2em;
+    line-height: 30px;
+    margin: auto;
+    padding: 0;
+    background: inherit;
+    color: #FFFFFF;
+    text-align: center;
+}
+.dialog .dialog-title p {
+    line-height: normal;
+}
+.dialog .dialog-body {
+    height: 70vh;
+    line-height: normal;
+    margin: auto;
+    padding: 2%;
+    text-align: inherit;
+    overflow: auto;
+    background-color: inherit;
+}
+.dialog.confirm .dialog-body {
+    height: auto;
+}
+.dialog.wide .dialog-body {
+    height: auto;
+    line-height: normal;
+    margin: auto;
+    padding: 2%;
+    text-align: inherit;
+    overflow: auto;
+    background-color: inherit;
+}
+.dialog .dialog-body p {
+    margin: 20px;
+}
+.dialog .dialog-body button {
+    margin: 5px;
+}
+.dialog .loading {
+    position: absolute;
+    width: fit-content;
+    height: fit-content;
+    left: 25%;
+    right: 25%;
+    top: 25%;
+    bottom: 25%;
+    margin: auto;
+    border-radius: 20px;
+    background: #FFFFFF;
+}

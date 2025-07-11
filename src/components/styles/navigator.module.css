@@ -1,0 +1,37 @@
+
+/* Page Layout */
+.main {
+    display: grid;
+    grid-template-areas:
+		'header header header header header'
+		'leftcol leftdragbar tabs tabs tabs'
+		'leftcol leftdragbar tabpages'
+		'leftcol leftdragbar footer footer footer';
+    grid-template-rows: min-content 1fr 9fr 1fr;
+    grid-template-columns: 2fr 6px 6fr 6px 2fr;
+}
+
+.header {
+    overflow: auto;
+    grid-area: header;
+}
+
+.navigator {
+    overflow: auto;
+    grid-area: leftcol;
+}
+
+.dragbar {
+    grid-area: leftdragbar;
+    cursor: col-resize;
+}
+
+.viewer {
+    overflow: auto;
+    grid-area: tabs;
+}
+
+.footer {
+    overflow: auto;
+    grid-area: footer;
+}

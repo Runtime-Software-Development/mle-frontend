@@ -1,0 +1,46 @@
+
+/* Page Layout */
+.main {
+    display: grid;
+    grid-template-areas: 'navigator dragbar viewer';
+    grid-template-rows: auto;
+    grid-template-columns: min-content 10px min-content;
+}
+
+.header {
+    background-color: #222222;
+    overflow: auto;
+    grid-area: header;
+}
+
+.navigator {
+    background-color: #222;
+    overflow-y: scroll;
+    grid-area: navigator;
+    margin-right: -10px;
+    z-index: 20;
+}
+
+.dragbar {
+    width: 12px;
+    background-color: #444444;
+    grid-area: dragbar;
+    cursor: col-resize !important;
+    border-width: 0 2px;
+    border-style: double;
+    border-color: #888888;
+    z-index: 30;
+}
+
+.viewer {
+    background-color: #222222;
+    overflow-y: auto;
+    min-width: 450px;
+    grid-area: viewer;
+    z-index: 10;
+}
+
+.footer {
+    overflow: auto;
+    grid-area: footer;
+}

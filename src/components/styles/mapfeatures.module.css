@@ -1,0 +1,14 @@
+
+/* Selected download image */
+.active {
+    background-color: #00A652;
+    border-bottom: 1px solid #444 !important;
+    cursor: pointer;
+}
+
+.inactive {
+    cursor: pointer;
+    background-color: #222222;
+    border-bottom: 1px solid #444 !important;
+}
+
