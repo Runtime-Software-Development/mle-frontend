@@ -330,6 +330,7 @@ export function getMIME(format) {
         'tiff': 'image/tiff',
         'tiff-le': 'image/tiff',
         'tiff-be': 'image/tiff',
+        'iiq': 'image/x-phaseone-iiq',
         '3RF': 'image/*',
         'CR2': 'image/x-canon-cr2',
         'CRW': 'image/x-canon-crw',

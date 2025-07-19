@@ -140,6 +140,7 @@ const AdminView = () => {
         const { jobId, status, timestamp, finishedOn, processedOn } = job;
         const data = JSON.parse(job?.data || '{}');
         const error = JSON.parse(job?.error) || job?.error || '{}';
+        // console.log('Job Details:', jobId, status, timestamp, finishedOn, processedOn, data, error);
         dialog.setCurrent({
             dialogID: 'show',
             model: 'jobs',
@@ -203,7 +204,7 @@ const AdminView = () => {
         });
         const datetime_display = `${date_display} | ${time_display.slice(0, -4)}`;
 
-        router.get(`/admin/jobs/retry/${jobId}`)
+        router.post(`/admin/jobs/retry/${jobId}`)
             .then(res => {
                 if (!res || res.error) {
                     return setMessage({
@@ -213,15 +214,14 @@ const AdminView = () => {
                 }
                 const job = res.response?.data
                 const { status, finishedOn, processedOn } = job;
-                return {
+                return setMessage({msg: JSON.stringify({
                     id: jobId,
                     status: status,
                     timestamp: job?.timestamp,
                     attempts: job?.attemptsMade,
                     processedOn: processedOn ? new Date(processedOn).toLocaleString() : 'n/a',
                     finishedOn: finishedOn ? new Date(finishedOn).toLocaleString() : 'n/a',
-                    details: () => { }
-                }
+                })});
 
             }).catch(err => {
                 console.error('Error retrying job:', err);
@@ -251,15 +251,14 @@ const AdminView = () => {
                 }
                 const job = res.response?.data
                 const { status, finishedOn, processedOn } = job;
-                return {
+                return setMessage({msg: JSON.stringify({
                     id: jobId,
                     status: status,
                     timestamp: job?.timestamp,
                     attempts: job?.attemptsMade,
                     processedOn: processedOn ? new Date(processedOn).toLocaleString() : 'n/a',
                     finishedOn: finishedOn ? new Date(finishedOn).toLocaleString() : 'n/a',
-                    details: () => { }
-                }
+                })});
 
             }).catch(err => {
                 console.error('Error removing job:', err);
@@ -350,135 +349,131 @@ const AdminView = () => {
 
     return (
         <>
-            {message && <UserMessage onClose={() => setMessage(null)} closeable={true} message={message} />}
+            {
+                message && <UserMessage onClose={() => setMessage(null)} closeable={true} message={message} />}
+            {isAdmin && <div>
+                <div className="admin">
+                    <Accordion
+                        type="logs"
+                        label="System Status"
+                        open={true}
+                        menu={
+                            <Button icon={'sync'} onClick={() => _refreshStatus()} />
+                        }
+                    >
+                        <>{loading && <Loading label={'Refreshing Status...'} overlay={false} />}</>
+                        {!loading &&
+                            <div className="h-menu">
+                                <ul>
+                                    <li><Badge
+                                        label={`
+                                    API Server: ${systemStatus?.server?.status ? 'Online' : 'Offline'}
+                                `}
+                                        icon={systemStatus?.server?.status ? 'success' : 'error'}
+                                        size="lg"
+                                        className={systemStatus?.server?.status ? 'success' : 'error'} />
+                                    </li>
+                                    <li><Badge
+                                        label={`Database: ${systemStatus?.database?.status ? 'Online' : 'Offline'}`}
+                                        icon={systemStatus?.database?.status ? 'success' : 'error'}
+                                        size="lg"
+                                        className={systemStatus?.database?.status ? 'success' : 'error'} />
+                                    </li>
+                                    <li><Badge
+                                        label={`File Queue: ${systemStatus?.queue?.status ? 'Online' : 'Offline'}`}
+                                        icon={systemStatus?.queue?.status ? 'success' : 'error'}
+                                        size="lg"
+                                        className={systemStatus?.queue?.status ? 'success' : 'error'} />
+                                    </li>
+                                    {/* <li><Badge
+                                        label={`Auth Server: ${systemStatus?.idp?.status ? 'Online' : 'Offline'}`}
+                                        icon={systemStatus?.idp?.status ? 'success' : 'error'}
+                                        size="lg"
+                                        className={systemStatus?.idp?.status ? 'success' : 'error'} />
+                                    </li> */}
+                                </ul>
+                            </div>
+                        }
+                    </Accordion>
+                </div>
 
-            <div className="admin">
-                <Accordion
-                    type="logs"
-                    label="System Status"
-                    open={true}
-                    menu={
-                        <Button icon={'sync'} onClick={() => _refreshStatus()} />
-                    }
-                >
-                    <>{loading && <Loading label={'Refreshing Status...'} overlay={false} />}</>
-                    {!loading &&
+                <div className="admin">
+
+                    <Accordion
+                        type="logs"
+                        label="Application Logs"
+                        menu={
+                            <Button icon={'sync'} onClick={() => _refreshLogs()} />
+                        }
+                    >
+                        <>{loading && <Loading label={'Loading logs...'} overlay={false} />}</>
+                        {applicationLogs.length === 0 ? (
+                            <div>No logs to report.</div>
+                        ) : (
+                            (applicationLogs || []).map((log, index) =>
+                                <Accordion type="logs" key={index} label={log?.file}>
+                                    {log?.contents.map((line, index) =>
+                                        <div key={index}><code style={{ whiteSpace: 'pre-wrap' }}>{line}</code></div>)}
+                                </Accordion>
+                            ))}
+                    </Accordion>
+
+                    <Accordion
+                        type="jobs"
+                        label="File Processing Jobs in Queue"
+                        menu={
+                            <Button icon={'sync'} onClick={() => _refreshJobs()} />
+                        }
+                    >
                         <div className="h-menu">
                             <ul>
-                                <li><Badge
-                                    label={`
-                                    API Server: ${systemStatus?.server?.status ? 'Online' : 'Offline'}
-                                    (Uptime: ${toTime(systemStatus?.server?.uptime) || '0:00:00'})
-                                `}
-                                    icon={systemStatus?.server?.status ? 'success' : 'error'}
-                                    size="lg"
-                                    className={systemStatus?.server?.status ? 'success' : 'error'} />
-                                </li>
-                                <li><Badge
-                                    label={`Database: ${systemStatus?.database?.status ? 'Online' : 'Offline'}`}
-                                    icon={systemStatus?.database?.status ? 'success' : 'error'}
-                                    size="lg"
-                                    className={systemStatus?.database?.status ? 'success' : 'error'} />
-                                </li>
-                                <li><Badge
-                                    label={`File Processor: ${systemStatus?.processor?.status ? 'Online' : 'Offline'}`}
-                                    icon={systemStatus?.processor?.status ? 'success' : 'error'}
-                                    size="lg"
-                                    className={systemStatus?.processor?.status ? 'success' : 'error'} />
-                                </li>
-                                <li><Badge
-                                    label={`File Queue: ${systemStatus?.queue?.status ? 'Online' : 'Offline'}`}
-                                    icon={systemStatus?.queue?.status ? 'success' : 'error'}
-                                    size="lg"
-                                    className={systemStatus?.queue?.status ? 'success' : 'error'} />
-                                </li>
-                                <li><Badge
-                                    label={`Auth Server: ${systemStatus?.idp?.status ? 'Online' : 'Offline'}`}
-                                    icon={systemStatus?.idp?.status ? 'success' : 'error'}
-                                    size="lg"
-                                    className={systemStatus?.idp?.status ? 'success' : 'error'} />
-                                </li>
+                                {jobCounts['completed'] > 0 && (
+                                    <li>
+                                        <Badge label={`Completed: ${jobCounts['completed']}`} icon={'success'} size="lg" className="success" />
+                                    </li>
+                                )}
+                                {jobCounts['active'] > 0 && (
+                                    <li>
+                                        <Badge label={`Active: ${jobCounts['active']}`} icon={'sync'} size="lg" className="info" />
+                                    </li>
+                                )}
+                                {jobCounts['delayed'] > 0 && (
+                                    <li>
+                                        <Badge label={`Delayed: ${jobCounts['delayed']}`} icon={'warning'} size="lg" className="info" />
+                                    </li>
+                                )}
+                                {jobCounts['waiting'] > 0 && (
+                                    <li>
+                                        <Badge label={`Waiting: ${jobCounts['waiting']}`} icon={'warning'} size="lg" className="info" />
+                                    </li>
+                                )}
+                                {jobCounts['failed'] > 0 && (
+                                    <li>
+                                        <Badge label={`Failed: ${jobCounts['failed']}`} icon={'error'} size="lg" className="error" />
+                                    </li>
+                                )}
                             </ul>
                         </div>
-                    }
-                </Accordion>
+                        <>{loading && <Loading label={'Loading jobs...'} overlay={false} />}</>
+                        {pendingJobs.length === 0 ? (
+                            <div>No jobs in queue.</div>
+                        ) : (
+                            <Table className="files" defaultSortBy="id" rows={pendingJobs} cols={[
+                                { name: 'id', label: 'Job ID' },
+                                { name: 'status', label: 'Status' },
+                                { name: 'timestamp', label: 'Timestamp', datatype: 'timestamp' },
+                                { name: 'attempts', label: 'Retries' },
+                                { name: 'processedOn', label: 'Processed', datatype: 'timestamp', defaultSort: true },
+                                { name: 'finishedOn', label: 'Finished', datatype: 'timestamp' },
+                                { name: 'details', label: 'Details' },
+                                { name: 'retry', label: 'Retry' },
+                                { name: 'remove', label: 'Remove' },
+                            ]} />
+                        )}
+                    </Accordion>
+                </div>
             </div>
-
-            {isAdmin && <div className="admin">
-
-                <Accordion
-                    type="logs"
-                    label="Application Logs"
-                    menu={
-                        <Button icon={'sync'} onClick={() => _refreshLogs()} />
-                    }
-                >
-                    <>{loading && <Loading label={'Loading logs...'} overlay={false} />}</>
-                    {applicationLogs.length === 0 ? (
-                        <div>No logs to report.</div>
-                    ) : (
-                        (applicationLogs || []).map((log, index) =>
-                            <Accordion type="logs" key={index} label={log?.file}>
-                                {log?.contents.map((line, index) =>
-                                    <div key={index}><code style={{ whiteSpace: 'pre-wrap' }}>{line}</code></div>)}
-                            </Accordion>
-                        ))}
-                </Accordion>
-
-                <Accordion
-                    type="jobs"
-                    label="File Processing Jobs in Queue"
-                    menu={
-                        <Button icon={'sync'} onClick={() => _refreshJobs()} />
-                    }
-                >
-                    <div className="h-menu">
-                        <ul>
-                            {jobCounts['completed'] > 0 && (
-                                <li>
-                                    <Badge label={`Completed: ${jobCounts['completed']}`} icon={'success'} size="lg" className="success" />
-                                </li>
-                            )}
-                            {jobCounts['active'] > 0 && (
-                                <li>
-                                    <Badge label={`Active: ${jobCounts['active']}`} icon={'sync'} size="lg" className="info" />
-                                </li>
-                            )}
-                            {jobCounts['delayed'] > 0 && (
-                                <li>
-                                    <Badge label={`Delayed: ${jobCounts['delayed']}`} icon={'warning'} size="lg" className="info" />
-                                </li>
-                            )}
-                            {jobCounts['waiting'] > 0 && (
-                                <li>
-                                    <Badge label={`Waiting: ${jobCounts['waiting']}`} icon={'warning'} size="lg" className="info" />
-                                </li>
-                            )}
-                            {jobCounts['failed'] > 0 && (
-                                <li>
-                                    <Badge label={`Failed: ${jobCounts['failed']}`} icon={'error'} size="lg" className="error" />
-                                </li>
-                            )}
-                        </ul>
-                    </div>
-                    <>{loading && <Loading label={'Loading jobs...'} overlay={false} />}</>
-                    {pendingJobs.length === 0 ? (
-                        <div>No jobs in queue.</div>
-                    ) : (
-                        <Table className="files" defaultSortBy="id" rows={pendingJobs} cols={[
-                            { name: 'id', label: 'Job ID' },
-                            { name: 'status', label: 'Status' },
-                            { name: 'timestamp', label: 'Timestamp', datatype: 'timestamp' },
-                            { name: 'attempts', label: 'Retries' },
-                            { name: 'processedOn', label: 'Processed', datatype: 'timestamp', defaultSort: true },
-                            { name: 'finishedOn', label: 'Finished', datatype: 'timestamp' },
-                            { name: 'details', label: 'Details' },
-                            { name: 'retry', label: 'Retry' },
-                            { name: 'remove', label: 'Remove' },
-                        ]} />
-                    )}
-                </Accordion>
-            </div>}
+            }
         </>
     );
 };
