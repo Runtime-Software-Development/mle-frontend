@@ -187,7 +187,7 @@ echo "Configuring PM2 to start on system boot (requires sudo)..."
 # This command typically outputs something like:
 # sudo env PATH=$PATH:/home/user/.nvm/versions/node/vX.Y.Z/bin pm2 startup systemd -u youruser --hp /home/youruser
 echo "Attempting to generate and run PM2 startup script..."
-PM2_STARTUP_COMMAND=$("${LOCAL_PM2_BIN}" startup systemd | grep "sudo env PATH")
+PM2_STARTUP_COMMAND=$("${LOCAL_PM2_BIN}" start ${PM2_CONFIG_FILE})
 
 if [ -z "${PM2_STARTUP_COMMAND}" ]; then
   echo "Error: PM2 startup command could not be generated using local PM2. This often means PM2 cannot find itself or needs a global install for this feature."
