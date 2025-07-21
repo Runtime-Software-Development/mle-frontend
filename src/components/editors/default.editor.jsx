@@ -18,6 +18,7 @@ import Button from "../common/button";
 import Badge from "../common/badge";
 import { createNodeRoute } from "../../utils/paths.utils.client";
 import { useDialog } from "../../providers/dialog.provider.client";
+import { useNav } from "../../providers/nav.provider.client";
 
 /**
  * Node metadata/media editor.
@@ -57,6 +58,7 @@ const Editor = ({
 }) => {
 
     const router = useRouter();
+    const nav = useNav();
     const api = useData();
 
     const [progress, setProgress] = React.useState({});
@@ -208,6 +210,8 @@ const Editor = ({
     const _handleCompletion = () => {
         const { data = {} } = response || {};
         const { id = '', owner = {} } = api.destructure(data);
+        nav.refresh();
+        api.refresh();
         callback(error, model, id, owner);
     }
 

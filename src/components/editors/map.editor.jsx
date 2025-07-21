@@ -8,16 +8,16 @@
 
 import React from 'react';
 import InputSelector from "../selectors/input.selector";
-import {UserMessage} from "../common/message";
-import {useData} from "../../providers/data.provider.client";
-import {useRouter} from "../../providers/router.provider.client";
+import { UserMessage } from "../common/message";
+import { useData } from "../../providers/data.provider.client";
+import { useRouter } from "../../providers/router.provider.client";
 import styles from "../styles/mapfeatures.module.css";
 import Icon from "../common/icon";
 import Button from "../common/button";
 import Table from "../common/table";
 import Badge from "../common/badge";
-import {useDialog} from "../../providers/dialog.provider.client";
-
+import { useDialog } from "../../providers/dialog.provider.client";
+import { useNav } from "../../providers/nav.provider.client";
 
 /**
  * Map feature selector and editor widget. Used to edit dependent features in map.
@@ -27,8 +27,9 @@ import {useDialog} from "../../providers/dialog.provider.client";
  * @return {JSX.Element}
  */
 
-export const MapEditor = ({id}) => {
+export const MapEditor = ({ id }) => {
 
+    const nav = useNav();
     const api = useData();
     const router = useRouter();
     const dialog = useDialog();
@@ -45,11 +46,11 @@ export const MapEditor = ({id}) => {
 
     // prepare image table columns
     const cols = [
-        {name: 'check', label: ''},
-        {name: 'name', label: 'Name'},
-        {name: 'typeLabel', label: 'Type'},
-        {name: 'map_object', label: 'Map Object'},
-        {name: 'description', label: 'Description'}
+        { name: 'check', label: '' },
+        { name: 'name', label: 'Name' },
+        { name: 'typeLabel', label: 'Type' },
+        { name: 'map_object', label: 'Map Object' },
+        { name: 'description', label: 'Description' }
     ];
 
     // update selected image file for canvas loading
@@ -74,7 +75,7 @@ export const MapEditor = ({id}) => {
      * @private
      */
     const _getFeatureIDs = (features) => {
-        return [].concat.apply([], features).map(({nodes_id}) => {return nodes_id});
+        return [].concat.apply([], features).map(({ nodes_id }) => { return nodes_id });
     }
 
     /**
@@ -85,14 +86,14 @@ export const MapEditor = ({id}) => {
     const _getFeatureList = (features) => {
         return [].concat.apply([], features)
             .map(feature => {
-                const {nodes_id, owner, name, type, description, geometry} = feature || {};
+                const { nodes_id, owner, name, type, description, geometry } = feature || {};
                 // select map feature type label (if available)
-                const {map_feature_types = []} = api.options || {};
+                const { map_feature_types = [] } = api.options || {};
                 // select image state label for value (if available)
                 const mapFeatureType = map_feature_types.find(opt => opt.value === type) || {};
                 return {
                     className: selectedFeatures.includes(nodes_id) ? styles.active : styles.inactive,
-                    onClick: () => {_handleSelect(nodes_id)},
+                    onClick: () => { _handleSelect(nodes_id) },
                     id: nodes_id,
                     check: <Icon type={selectedFeatures.includes(nodes_id) ? 'success' : 'cancel'} />,
                     name: name,
@@ -137,8 +138,8 @@ export const MapEditor = ({id}) => {
 
         const features = (selectedFeatures || []).map((selectedID) => {
             const feature = featureOptions.features.find(feature => feature.id === selectedID);
-            const {name, description, type, geometry} = feature || {};
-            return {name, geometry, type, description};
+            const { name, description, type, geometry } = feature || {};
+            return { name, geometry, type, description };
         });
 
         router.post(`/files/map/features/${id}`, features, true)
@@ -150,6 +151,10 @@ export const MapEditor = ({id}) => {
                     const { message = {} } = response || {};
                     setMessage(message)
                 }
+            })
+            .then(() => {
+                nav.refresh();
+                api.refresh();
             })
             .catch(err => console.error(err),
             );
@@ -180,8 +185,8 @@ export const MapEditor = ({id}) => {
     const _handleSelect = (id) => {
         // toggle inclusion of selected id
         selectedFeatures.includes(id)
-            ? setSelectedFeatures(data => {return data.filter(o => o !== id)})
-            : setSelectedFeatures(data => ([ ...data, id ]));
+            ? setSelectedFeatures(data => { return data.filter(o => o !== id) })
+            : setSelectedFeatures(data => ([...data, id]));
     };
 
     /**
@@ -193,11 +198,11 @@ export const MapEditor = ({id}) => {
         setSelectedFeatures(featureOptions.data);
     };
 
-    const {files} = api.data || {};
-    const {metadata_files} = files || {};
+    const { files } = api.data || {};
+    const { metadata_files } = files || {};
     const fileList = (metadata_files || []).map(metadata_file => {
-        const {file, label} = metadata_file || {};
-        const {id} = file || {};
+        const { file, label } = metadata_file || {};
+        const { id } = file || {};
         return {
             value: id,
             label: `${label}`
@@ -281,7 +286,7 @@ export const MapEditor = ({id}) => {
                     <Table rows={featureOptions.features} cols={cols} className={`files`} />
                     <Badge
                         className={'active'}
-                        label={selectedFeatures.length === 1 ?`${selectedFeatures.length} map object selected.` : `${selectedFeatures.length} map objects selected.`}
+                        label={selectedFeatures.length === 1 ? `${selectedFeatures.length} map object selected.` : `${selectedFeatures.length} map objects selected.`}
                         icon={'map_objects'}
                     />
                     <div className={'h-menu'}>

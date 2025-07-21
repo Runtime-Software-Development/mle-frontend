@@ -21,7 +21,7 @@ import {getDependentTypes, getModelLabel, isImageType, isCaptureType} from '../.
 import Button from '../common/button';
 import Dropdown from "../common/dropdown";
 import {useUser} from "../../providers/user.provider.client";
-import {genID, sanitize} from "../../utils/data.utils.client";
+import {genID} from "../../utils/data.utils.client";
 import {createNodeRoute, redirect} from "../../utils/paths.utils.client";
 import Download from "../common/download";
 import {useDialog} from "../../providers/dialog.provider.client";

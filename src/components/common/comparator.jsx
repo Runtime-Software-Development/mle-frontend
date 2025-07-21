@@ -11,8 +11,8 @@ import Button from './button';
 import Image from './image';
 import Loading from "./loading";
 import Slider from "./slider";
-import {createNodeRoute} from "../../utils/paths.utils.client";
-import {useRouter} from "../../providers/router.provider.client";
+import { createNodeRoute } from "../../utils/paths.utils.client";
+import { useRouter } from "../../providers/router.provider.client";
 
 
 /**
@@ -26,20 +26,20 @@ import {useRouter} from "../../providers/router.provider.client";
  */
 
 const ImagePair = ({
-                       selected = false,
-                       historicImage,
-                       modernImage
-                   }) => {
+    selected = false,
+    historicImage,
+    modernImage
+}) => {
 
     const pairRef = React.useRef();
 
     // auto-increment slideshow
     // scroll to current top node
     React.useEffect(() => {
-        if ( pairRef.current && selected) {
+        if (pairRef.current && selected) {
             pairRef.current.scrollIntoView();
         }
-        return () => {};
+        return () => { };
     }, [selected]);
 
     return <div ref={pairRef} className={`h-menu comparison-pair ${selected ? 'active' : ''}`}>
@@ -73,31 +73,31 @@ const ImagePair = ({
  */
 
 const Comparator = ({
-                        images = [],
-                        autoslide=null,
-                        expandable=true
-                    }) => {
+    images = [],
+    autoslide = null,
+    expandable = true
+}) => {
 
     // slide panel reference
-    const slidePanel = React.useRef();                            
+    const slidePanel = React.useRef();
     // selected slide state
     const [selectedIndex, setSelectedIndex] = React.useState(0);
     // const [expandImage, setExpandImage] = React.useState(false);
     let selectedPair = images[selectedIndex];
-    
+
     // retrieve captures from pair
-    const { historic_captures={}, modern_captures={} } = selectedPair || {};
+    const { historic_captures = {}, modern_captures = {} } = selectedPair || {};
 
     // get router
     const router = useRouter();
 
     // extract metadata from capture object
     const getMetadata = (capture) => {
-        const { refImage={} } = capture || {};
-        const { label='', file={}, url='', title='' } = refImage;
-        const { file_type='', owner_id='', owner_type='' } = file;
+        const { refImage = {} } = capture || {};
+        const { label = '', file = {}, url = '', title = '' } = refImage;
+        const { file_type = '', owner_id = '', owner_type = '' } = file;
         return {
-            label : label || '<No Label>',
+            label: label || '<No Label>',
             title: title || '<No Title>',
             url: createNodeRoute(owner_type, 'show', owner_id)
         }
@@ -140,18 +140,24 @@ const Comparator = ({
     return (
         <div className="comparator">
             <div ref={slidePanel} className={'slides'}>
-                { 
-                    images.length > 0 ? 
-                    <Slider images={[historic_captures.refImage, modern_captures.refImage]} /> 
-                    : 
-                    <Loading /> 
+                {
+                    images.length > 0 ?
+                        <Slider images={[historic_captures.refImage, modern_captures.refImage]} />
+                        :
+                        <Loading />
                 }
-                <div className={'numbertext'}>{ selectedIndex + 1 }/{images.length}</div>
+                <div className={'numbertext'}>{selectedIndex + 1}/{images.length}</div>
                 {/* {
                     expandable &&
                     <div className={'expand-image'}><Button icon={'enlarge'} onClick={() => {
-                        setExpandImage(true);
-                    }}/></div>
+                        dialog.setCurrent({
+                            dialogID: 'image',
+                            url: url,
+                            label: title || label,
+                            scale: 'medium'
+                        });
+
+                    }} /></div>
                 } */}
             </div>
             {
@@ -164,7 +170,7 @@ const Comparator = ({
                             label={historicMetadata.label}
                             className={'capture-button historic_captures'}
                             icon={'historic_captures'}
-                            onClick={()=>{router.update(historicMetadata.url)}}
+                            onClick={() => { router.update(historicMetadata.url) }}
                         /></li>
                         <li>Modern:</li>
                         <li><Button
@@ -172,35 +178,36 @@ const Comparator = ({
                             label={modernMetadata.label}
                             className={'capture-button modern_captures'}
                             icon={'modern_captures'}
-                            onClick={()=>{router.update(modernMetadata.url)}}
+                            onClick={() => { router.update(modernMetadata.url) }}
                         /></li>
                         <li className={'push'}><Button icon={'next'} className={'next'} onClick={nextPair} /></li>
                     </ul>
                 </div>
             }
-                    <div className={'thumbnails comparisons h-menu'}>
-                        <ul>
-                            {
-                                (images || []).map((imgPair, index) => {
-                                    const { historic_captures={}, modern_captures={} } = imgPair || {};
-                                    return (
-                                        <li
-                                            key={`slide_button_${index}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation(); setSelectedIndex(index)}
-                                            }
-                                        >
-                                            <ImagePair
-                                                historicImage={historic_captures.refImage}
-                                                modernImage={modern_captures.refImage}
-                                                selected={index === selectedIndex}
-                                            />
-                                        </li>
-                                    );
-                                })
-                            }
-                        </ul>
-                    </div>
+            <div className={'thumbnails comparisons h-menu'}>
+                <ul>
+                    {
+                        (images || []).map((imgPair, index) => {
+                            const { historic_captures = {}, modern_captures = {} } = imgPair || {};
+                            return (
+                                <li
+                                    key={`slide_button_${index}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation(); setSelectedIndex(index)
+                                    }
+                                    }
+                                >
+                                    <ImagePair
+                                        historicImage={historic_captures.refImage}
+                                        modernImage={modern_captures.refImage}
+                                        selected={index === selectedIndex}
+                                    />
+                                </li>
+                            );
+                        })
+                    }
+                </ul>
+            </div>
         </div>
     );
 };

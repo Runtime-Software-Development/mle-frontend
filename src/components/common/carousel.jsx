@@ -39,7 +39,6 @@ const Carousel = ({
 
     // selected slide states
     const [selectedIndex, setSelectedIndex] = React.useState(0);
-    const [expandImage, setExpandImage] = React.useState(false);
     const selectedImage = items[selectedIndex];
 
     const router = useRouter();
@@ -63,10 +62,12 @@ const Carousel = ({
     };
     // image enlarged view
     const _handleExpandOpen = () => {
-        setExpandImage(true);
-    }
-    const _handleExpandClose = () => {
-        setExpandImage(false);
+        dialog.setCurrent({
+            dialogID: 'image',
+            url: url,
+            label: label,
+            scale: 'medium'
+        });
     }
     // handle item selection
     const _handleSelection = (id) => {
@@ -208,18 +209,6 @@ const Carousel = ({
                         }
                     </ul>
                 </div>
-                {
-                    expandImage &&
-                    <Dialog className={'wide'} title={`${modelLabel}: ${label}`} callback={_handleExpandClose}>
-                        <Image
-                            fit={'contain'}
-                            key={`slide_${selectedIndex}`}
-                            url={url}
-                            title={label}
-                            scale={'medium'}
-                        />
-                    </Dialog>
-                }
             </div>
         }
     </div>;

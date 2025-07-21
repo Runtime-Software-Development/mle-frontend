@@ -87,6 +87,7 @@ const Remover = ({
                             label={'Return to Previous Editor'}
                             onClick={() => {
                                 api.refresh();
+                                nav.refresh();
                                 dialog.cancel();
                             }}
                         />
@@ -97,6 +98,7 @@ const Remover = ({
                         label={'Close Editor'}
                         onClick={() => {
                             api.refresh();
+                            nav.refresh();
                             dialog.clear();
                             callback();
                         }}

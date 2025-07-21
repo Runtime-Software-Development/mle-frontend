@@ -43,6 +43,8 @@ import Editor from "./default.editor";
 import {useUser} from "../../providers/user.provider.client";
 import {useRouter} from "../../providers/router.provider.client";
 import {UserMessage} from "../common/message";
+import {useData} from "../../providers/data.provider.client";
+import {useNav} from "../../providers/nav.provider.client";
 
 // generate unique ID value for selector inputs
 const keyID = genID();
@@ -63,6 +65,8 @@ export const CapturesEditor = ({owner}) => {
 
     const user = useUser();
     const router = useRouter();
+    const api = useData();
+    const nav = useNav();
 
     const [selected, setSelected] = React.useState(null);
     const [dependents, setDependents] = React.useState({});
@@ -79,6 +83,9 @@ export const CapturesEditor = ({owner}) => {
     // handle captures edit refresh
     const _handleRefresh = () => {
         setLoaded(false);
+        api.refresh();
+        nav.refresh();
+        
     }
 
     // handle captures edit cancel
