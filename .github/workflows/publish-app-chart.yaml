@@ -38,8 +38,8 @@ jobs:
       - name: Get Chart metadata
         id: chart
         run: |
-          CHART_NAME=$(helm show chart helm | grep '^name:' | sed 's/^name:[[:space:]]*//')
-          CHART_VERSION=$(helm show chart helm | grep '^version:' | sed 's/^version:[[:space:]]*//')
+          CHART_NAME=$(grep '^name:' helm/Chart.yaml | sed 's/^name:[[:space:]]*//')
+          CHART_VERSION=$(grep '^version:' helm/Chart.yaml | sed 's/^version:[[:space:]]*//')
           echo "name=$CHART_NAME" >> "$GITHUB_OUTPUT"
           echo "version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
           echo "Chart: $CHART_NAME $CHART_VERSION"
