@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Tools.Toolkit.Comparator
  * File: comparator.alignment.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------

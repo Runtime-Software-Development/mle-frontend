@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Menus.Viewer
  * File: viewer.menu.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *  * ----------
  * Description
@@ -79,18 +79,18 @@ const ViewerPanelMenu = () => {
                             items={[{
                                 icon: 'surveyors',
                                 type: 'surveyors',
-                                label: `Add new ${getModelLabel('surveyors')}`,
+                                label: `Add New ${getModelLabel('surveyors')}`,
                                 callback: () => {dialog.setCurrent({dialogID: 'new_surveyor'})}
                             }, {
                                 icon: 'projects',
                                 type: 'projects',
-                                label: `Add new ${getModelLabel('projects')}`,
+                                label: `Add New ${getModelLabel('projects')}`,
                                 callback: () => {dialog.setCurrent({dialogID: 'new_project'})}
                             },
                             {
                                 icon: 'maps',
                                 type: 'map_objects',
-                                label: `Add new ${getModelLabel('map_objects')}`,
+                                label: `Add New ${getModelLabel('map_objects')}`,
                                 callback: () => {dialog.setCurrent({dialogID: 'new_map_object'})}
                             }]} />
                     </li>

@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Selectors.Dialog
  * File: dialog.selector.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------
@@ -39,6 +39,8 @@ import Accordion from "../common/accordion";
 import Image from "../common/image";
 import MapSelector from "./map.selector";
 import {MapEditor} from "../editors/map.editor";
+import NodesView from '../views/nodes.view';
+import EditorMenu from '../menus/editor.menu';
 
 /**
  * Dialog view for selecting forms/content to display in dialog popup components.
@@ -59,6 +61,7 @@ const DialogSelector = () => {
         // destructure dialog data
         const {
             dialogID='',
+            items = [],
             model = '',
             id = '',
             label = '',
@@ -72,6 +75,8 @@ const DialogSelector = () => {
             scale = 'medium',
             callback = ()=>{}
         } = data || {};
+
+        console.log('Showing dialog:', dialogID, data);
 
         // generate unique key for dialog
         const _key = `dialog_${dialogID}_${model}_${id}_${index}`;
@@ -117,6 +122,39 @@ const DialogSelector = () => {
                 callback={_handleDialogClose}
             >
                 <HelpView />
+            </Dialog>,
+            items: <Dialog
+                key={_key}
+                className={index > 0 ? 'hidden' : ''}
+                title={`${modelLabel} Details`}
+                callback={_handleDialogClose}
+            >
+                {
+                    items.map((item, itemIndex) => (
+                        <Accordion
+                            key={`dialog_item_${itemIndex}`}
+                            type={item?.type}
+                            id={item?.id}
+                            label={`${getModelLabel(item?.type)}: ${item?.label || ''}`}
+                            menu={<EditorMenu 
+                                    model={item?.node?.type} 
+                                    id={item?.node?.id} 
+                                    visible={['redirect']}
+                                />}
+                            open={itemIndex === 0}
+                        >
+                            <NodesView model={item.type} data={item} />
+                        </Accordion>
+                    ))
+                }
+                <div className={'centred'}>
+                    <Button
+                        className={'cancel'}
+                        icon={'cancel'}
+                        label={'Close Info Panel'}
+                        onClick={_handleCancel}
+                    />
+                </div>
             </Dialog>,
             show: <Dialog
                 key={_key}
@@ -373,7 +411,7 @@ const DialogSelector = () => {
                 />
             </Dialog>,
             image: <Dialog className={'wide'} key={_key} title={`Image: ${label}`} callback={_handleDialogClose}>
-                <Image url={url} title={label} scale={scale} />
+                <Image url={url || ''} title={label || ''} scale={scale} />
                 <div className={'centred'}>
                     <Button
                         className={'cancel'}

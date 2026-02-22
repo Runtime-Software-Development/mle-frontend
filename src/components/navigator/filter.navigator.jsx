@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Navigator.Filter
  * File: filter.navigator.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------
@@ -12,6 +12,7 @@
  *
  * ---------
  * Revisions
+ * - 25-10-2025     Added boundary filtering options.
 
  */
 
@@ -35,7 +36,7 @@ function FilterNavigator() {
     const api = useData();
     const dialog = useDialog();
 
-    // get filter options
+    // get filter options from global data provider
     const {
         surveyors=[],
         surveys=[],
@@ -44,36 +45,37 @@ function FilterNavigator() {
 
     // create filter data state
     const [filterData, setFilterData] = React.useState(nav.filter);
-
-    // filter options by owner ID
+    
+    /**
+     * Returns a filtered array of select data options based on the owner ID.
+     *
+     * @param {Array} selectData - array of select data options
+     * @param {string} ownerID - owner ID to filter by
+     * @returns {Array} filtered array of select data options
+     */
     const filterOptions = (selectData, ownerID) => {
         return (selectData || [])
             .filter(item => parseInt(item.owner_id) === parseInt(ownerID))
     }
-
-    // filter options by owner ID
-    const onChange = (e) => {
-        const {target={}} = e || {};
-        const { name='', value=''} = target;
+    
+    /**
+     * Updates the filter data state with the selected input value.
+     * 
+     * @param {Object} event - the change event object
+     * @param {string} event.target.name - the name of the filter input
+     * @param {string} event.target.value - the selected value of the filter input
+     */
+    const handleFilterChange = ({target: {name, value}}) => {
         const updates = {
-            surveyors: ()=>{
-                setFilterData({ surveyors: value });
-            },
-            surveys: ()=>{
-                setFilterData(data => ({...data, surveys: value, survey_seasons: ''}));
-            },
-            survey_seasons: ()=>{
-                setFilterData(data => ({...data, survey_seasons: value}));
-            },
-            status: ()=>{
-                setFilterData(data => ({...data, status: value}));
-            },
-        }
+            surveyors: () => setFilterData(data => ({...data, surveyors: value})),
+            surveys: () => setFilterData(data => ({...data, surveys: value, survey_seasons: ''})),
+            survey_seasons: () => setFilterData(data => ({...data, survey_seasons: value})),
+            status: () => setFilterData(data => ({...data, status: value}))
+        };
 
-        // update filter data state with input selection
+        // Update filter data state with input selection
         if (updates.hasOwnProperty(name)) updates[name]();
-
-    }
+    };
 
     // filter options based on selected values
     let surveyorID = filterData.hasOwnProperty('surveyors') && filterData.surveyors;
@@ -85,7 +87,7 @@ function FilterNavigator() {
     const _loader = async () => {return filterData}
 
     return <Form
-        key={'filter_by_survey'}
+        key={'filter-stations-form'}
         model={'stations'}
         opts={
             {
@@ -100,7 +102,7 @@ function FilterNavigator() {
             setFilterData({});
         }}
         onCancel={() => {dialog.cancel()}}
-        onChange={onChange}
+        onChange={handleFilterChange}
         callback={async ()=>{
             nav.setFilter(filterData)
             dialog.clear();

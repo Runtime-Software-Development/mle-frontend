@@ -1,8 +1,8 @@
 /**
  * MLP.Client.Components.Editors.Comparison
  * File: comparison.editor.js
- * Copyright(c) 2022 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  * 
  * Description: 

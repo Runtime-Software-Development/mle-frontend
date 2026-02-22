@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Tools.Map
  * File: selector.tools.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------
@@ -15,6 +15,7 @@
 
  */
 
+import * as turf from '@turf/turf';
 
 /**
  * Create base tile layers for Leaflet map
@@ -226,77 +227,183 @@ export const parseMapSheetKML = (xmlString) => {
 };
 
 /**
- * Generate feature popup HTML.
+ * Generate feature popup HTML with support for Projects and Survey Seasons.
  *
  * @public
- * @return string
  * @param id
  * @param feature
  * @param layer
  * @param callback
  */
-
 export const setFeaturePopup = (id, feature, layer, callback) => {
-    // does this feature have a property named popupContent?
-    const {properties} = feature || {}
-    const {name, type, description, owner, owner_id, dependents} = properties || {};
+    const { properties } = feature || {};
+    const { 
+        name,           // Map Feature name
+        type,           // Map Feature type
+        description,    // Map Feature description
+        owner,          // Default owner
+        owner_id,       
+        owner_type, 
+        dependents = [] 
+    } = properties || {};
+
     const popup = document.createElement('div');
+    popup.className = 'leaflet-popup-custom-content';
 
-    // map object link
-    const mapObjectLink = document.createElement('div');
-    mapObjectLink.innerHTML = `<span style="color: #888; font-weight: bold; cursor: pointer">${owner || ''}</span>`;
-    mapObjectLink.addEventListener("click", () => {
-        callback(owner_id || '', 'map_objects');
-    });
-    // featureLink.removeEventListener("click", () => {
-    //     console.log(feature)
-    // });
-    // map feature link
-    const mapFeatureLink = document.createElement('div');
-    mapFeatureLink.innerHTML = `<span style="color: #008896; font-weight: bold; cursor: pointer; font-size: larger">${name}</span>`;
-    mapFeatureLink.addEventListener("click", () => {
-        callback(id, 'map_features');
-    });
-    mapFeatureLink.removeEventListener("click", () => {
-        callback(id, 'map_features')
-    });
-    const featureDetails = document.createElement('div');
-    featureDetails.innerHTML = `
-        <div>${(type || '').toUpperCase()}</div>
-        <div>${description || ''}</div>`;
+    // 1. Determine Header Identity (Priority Logic)
+    // Priority: 1. Project, 2. Survey Season, 3. Default Map Feature
+    let headerData = {
+        displayName: name,
+        id: id,
+        category: 'map_features',
+        color: '#008896' // Default teal
+    };
 
-    // Include linked survey seasons maps
-    const surveySeasonsDetails = document.createElement('div');
-    // add elements for each dependent
-    (dependents || []).forEach(dependent => {
-        const {surveyor, surveyor_id, survey, survey_id, survey_season, survey_season_id} = dependent || {};
-        const surveySeasonLink = document.createElement('div');
-        surveySeasonLink.setAttribute('style', 'border-top: 1px solid #444');
-        surveySeasonLink.innerHTML = `<span style="color: #B65179; font-weight: bold; cursor: pointer">Survey Season ${survey_season}</span>`;
-        surveySeasonLink.addEventListener("click", () => {
-            callback(survey_season_id, 'survey_seasons');
-        });
-        const surveyLink = document.createElement('div');
-        surveyLink.innerHTML = `<span style="color: #888; font-weight: bold; cursor: pointer">${survey}</span>`;
-        surveyLink.addEventListener("click", () => {
-            callback(survey_id, 'surveys');
-        });
-        const surveyorLink = document.createElement('div');
-        surveyorLink.innerHTML = `<span style="color: #888; font-weight: bold; cursor: pointer">${surveyor}</span>`;
-        surveyorLink.addEventListener("click", () => {
-            callback(surveyor_id, 'surveyors');
-        });
-        surveySeasonsDetails.append(surveySeasonLink, surveyLink, surveyorLink);
-    });
+    const projectDep = dependents.find(d => d.owner_type === 'project');
+    const seasonDep = dependents.find(d => d.owner_type === 'survey_season');
 
-    // compose popup HTML
-    popup.appendChild(mapFeatureLink);
-    popup.appendChild(featureDetails);
-    popup.appendChild(surveySeasonsDetails);
-    // popup.appendChild(mapObjectLink);
-    // add popup to map layer
+    if (projectDep) {
+        headerData = {
+            displayName: projectDep.project_name,
+            id: projectDep.project_id,
+            category: 'projects',
+            color: '#2c3e50' // Dark Slate
+        };
+    } else if (seasonDep) {
+        headerData = {
+            displayName: `Survey Season ${seasonDep.survey_season}`,
+            id: seasonDep.survey_season_id,
+            category: 'survey_seasons',
+            color: '#B65179' // Pink/Red
+        };
+    }
+
+    // 2. Create the Dynamic Main Header Link
+    const mainHeaderLink = document.createElement('div');
+    mainHeaderLink.innerHTML = `<span style="color: ${headerData.color}; font-weight: bold; cursor: pointer; font-size: larger">${headerData.displayName}</span>`;
+    mainHeaderLink.addEventListener("click", () => callback(headerData.id, headerData.category));
+    
+    // 3. Sub-Details Section
+    // If the header became a Project/Season, we should show the original Feature Name and Type below it
+    const subDetails = document.createElement('div');
+    subDetails.style.marginBottom = '8px';
+    
+    // If the header is NOT the feature, show the feature name as a sub-label
+    const featureNameLabel = headerData.category !== 'map_features' 
+        ? `<div style="font-weight: bold; color: #444; margin-top: 4px;">Feature: ${name}</div>` 
+        : '';
+
+    subDetails.innerHTML = `
+        ${featureNameLabel}
+        <div style="font-size: 10px; color: #666; text-transform: uppercase;">${(type || '').toUpperCase()}</div>
+        <div style="margin-top: 4px; color: #333;">${description || ''}</div>`;
+
+    // 4. Secondary Relational Data (Survey/Surveyor info if available)
+    const extraInfoContainer = document.createElement('div');
+    if (seasonDep) {
+        const section = document.createElement('div');
+        section.setAttribute('style', 'border-top: 1px dashed #ccc; margin-top: 8px; padding-top: 4px;');
+
+        section.innerHTML = `
+            <div style="font-size: 12px; color: #888; cursor: pointer">Survey: ${seasonDep.survey}</div>
+            <div style="font-size: 12px; color: #888; cursor: pointer">Lead: ${seasonDep.surveyor}</div>
+        `;
+        
+        section.children[0].addEventListener("click", () => callback(seasonDep.survey_id, 'surveys'));
+        section.children[1].addEventListener("click", () => callback(seasonDep.surveyor_id, 'surveyors'));
+        
+        extraInfoContainer.appendChild(section);
+    }
+
+    // Final Assembly
+    popup.appendChild(mainHeaderLink);
+    popup.appendChild(subDetails);
+    popup.appendChild(extraInfoContainer);
+
     layer.bindPopup(popup, {
         closeOnClick: true,
         autoClose: true
     });
-}
+};
+
+
+/**
+ * Filters a list of stations to include only those whose coordinates fall
+ * within any of the active GeoJSON boundary polygons.
+ *
+ * NOTE: Turf.js expects coordinates in [longitude, latitude] order (x, y).
+ *
+ * @param {Array<Object>} stations - Array of station objects (must have .lat and .lng properties).
+ * @param {Array<Object>} overlayFeatures - Array from nav.overlay, containing {id, geoJSON, ...}
+ * @returns {Array<Object>} The subset of stations that are inside a boundary.
+ */
+export const filterStationsByBoundary = (stations, overlayFeatures) => {
+
+    if (!overlayFeatures || overlayFeatures.length === 0) {
+        return stations;
+    }
+
+    // 1. Compile all active polygon geometries from the overlay features.
+    // This now includes a conversion step for closed LineStrings.
+    const activePolygons = overlayFeatures
+        // Flatten the array by extracting the feature objects from the geoJSON field.
+        // This handles cases where geoJSON is a FeatureCollection or an array of features.
+        .flatMap(item => item.geoJSON.features || item.geoJSON)
+        // Convert closed LineStrings to Polygons and filter out non-spatial features
+        .map(feature => {
+            if (!feature || !feature.geometry) return null;
+            
+            const type = feature.geometry.type;
+
+            if (type === 'Polygon' || type === 'MultiPolygon') {
+                // Already a valid polygon type
+                return feature;
+            }
+
+            if (type === 'LineString') {
+                const coords = feature.geometry.coordinates;
+                
+                // Check if the LineString is closed (first and last coordinate must match)
+                const isClosed = 
+                    coords.length >= 4 && // Must have at least 4 coordinates (3 segments) to form a closed shape
+                    coords[0][0] === coords[coords.length - 1][0] && // Check Longitude (X)
+                    coords[0][1] === coords[coords.length - 1][1];  // Check Latitude (Y)
+                
+                if (isClosed) {
+                    try {
+                        // Convert closed LineString to Polygon feature
+                        return turf.lineToPolygon(feature);
+                    } catch (e) {
+                        // Log error if conversion fails (e.g., self-intersecting lines)
+                        console.error("Spatial Filter: Turf conversion failed for closed LineString:", e);
+                        return null;
+                    }
+                }
+            }
+            
+            return null; // Ignore all other types (Point, MultiPoint, etc.)
+        })
+        .filter(Boolean); // Remove null entries (features that were ignored or failed conversion)
+
+    // If no valid polygons are loaded, skip filtering and return all stations.
+    if (activePolygons.length === 0) {
+        console.warn("Spatial Filter: No valid Polygon, MultiPolygon, or closed LineString geometries found in overlay.");
+        return stations;
+    }
+
+    // 2. Run the Point-in-Polygon test for every station.
+    return stations.filter(station => {
+        // Create a Turf Point feature for the station: [longitude, latitude]
+        const point = turf.point([station.lng, station.lat]);
+
+        // Check if the station point falls within ANY of the active polygons
+        for (const polygonFeature of activePolygons) {
+            // booleanPointInPolygon is the core function
+            if (turf.booleanPointInPolygon(point, polygonFeature)) {
+                return true; // Station is inside at least one boundary
+            }
+        }
+        
+        return false; // Station is not inside any boundary
+    });
+};

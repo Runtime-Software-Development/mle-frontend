@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Tools.Pagination
  * File: paginate.tools.js
- * Copyright(c) 2022 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  */
 
@@ -14,15 +14,19 @@ import Accordion from '../common/accordion';
 import PaginationMenu from '../menus/pagination.menu';
 import { useRouter } from '../../providers/router.provider.client';
 import { createRoute } from '../../utils/paths.utils.client';
+import NodesView from "../views/nodes.view";
 
 /**
  * Paginate results component.
  *
- * @public
- * @param {Array} data
- * @return {JSX.Element}
+ * @param {Object} data - object with properties:
+ *   - query: search query string
+ *   - offset: starting index for pagination
+ *   - limit: number of items to display per page
+ *   - results: array of node data objects
+ *   - count: total number of items matching query
+ * @return {JSX.Element} - paginated list of items
  */
-
 const PaginationTools = ({data}) => {
 
     const router = useRouter();
@@ -68,7 +72,7 @@ const PaginationTools = ({data}) => {
 
         return results.map((item, index) => {
 
-            const {node={}, metadata={}, label=''} = item || {};
+            const {node={}, label=''} = item || {};
 
             return  <li key={`${keyID}_item_${index}`}>
                         <Accordion
@@ -76,7 +80,8 @@ const PaginationTools = ({data}) => {
                             id={node.id}
                             label={`${getModelLabel(node.type)}: ${label}`}
                         >
-                            <MetadataView node={node} model={node.type} metadata={metadata} />
+                            {/* <MetadataView node={node} model={node.type} metadata={metadata} /> */}
+                            <NodesView  model={node.type} data={item} />
                         </Accordion>
                     </li>
         });

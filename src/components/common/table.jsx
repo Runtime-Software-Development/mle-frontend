@@ -1,15 +1,15 @@
 /*!
  * MLE.Client.Components.Common.Table
  * File: editor.js
- * Copyright(c) 2024 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  * 
  * Revisions
  * - 08-09-2024 Modified component.
  */
 
-import React from 'react';
+import { useState, useEffect } from 'react';
 import Loading from './loading';
 import Icon from "./icon";
 import { compare, sanitize } from '../../utils/data.utils.client';
@@ -25,8 +25,8 @@ import { compare, sanitize } from '../../utils/data.utils.client';
  * @return {JSX.Element}
  */
 
-const TableBody = ({tableID, rows, cols}) => {
-    const noop = ()=>{};
+const TableBody = ({ tableID, rows, cols }) => {
+    const noop = () => { };
     return <tbody>{
         rows.map((row, index) => {
             return (
@@ -39,8 +39,8 @@ const TableBody = ({tableID, rows, cols}) => {
                                     key={`td_${index}_${col.name}`}
                                     className={row.className}>
                                     {
-                                        col.hasOwnProperty('datatype') 
-                                            ? sanitize(row[col.name], col.datatype) 
+                                        col.hasOwnProperty('datatype') && col.datatype !== 'select'
+                                            ? sanitize(row[col.name], col.datatype)
                                             : row[col.name]
                                     }
                                 </td>
@@ -65,7 +65,7 @@ const TableBody = ({tableID, rows, cols}) => {
  * @param {String} className (Optional)
  * @return {JSX.Element}
  */
-const Table = ({ rows, cols, className=''}) => {
+const Table = ({ rows, cols, className = '', scrollable = false }) => {
 
     /**
      * Generate unique ID value for table.
@@ -83,32 +83,19 @@ const Table = ({ rows, cols, className=''}) => {
         .filter(({ defaultSort }) => !!defaultSort)
         .map(({ name }) => name)
         .join();
-    const [sortBy, setSortBy] = React.useState(defaultSort);
-    const [order, setOrder] = React.useState(-1);
-    const [datatype, setDatatype] = React.useState(null);
+    const [sortBy, setSortBy] = useState(defaultSort);
+    const [order, setOrder] = useState(1);
+    const [datatype, setDatatype] = useState('string');
 
-    /**
-     * Sort table by column name.
-     * @param {String} col
-     */
-    function _selectSort(col) {
-        setSortBy(col?.name);
-        setOrder(-order);
-        setDatatype(col?.datatype);
-    }
-
-    /**
-     * Sort table by column name.
-     * @param {Object} a
-     * @param {Object} b
-     * @return {Number}
-     */
     function _compareFn(a, b) {
         if (!sortBy) return 0;
         // ensure field value can be sorted by selected column name
         if (!a.hasOwnProperty(sortBy) || !b.hasOwnProperty(sortBy)) return 0;
 
-        // sort by custom data type
+        // sort by selected table rows (selected/unselected)
+        if (datatype === 'select') {
+            return order * (!!a.selected > !!b.selected ? 1 : -1);
+        }
         if (datatype === 'number') {
             return order * compare(Number(a[sortBy]), Number(b[sortBy]));
         }
@@ -128,6 +115,16 @@ const Table = ({ rows, cols, className=''}) => {
     }
 
     /**
+     * Sort table by column name.
+     * @param {String} col
+     */
+    function _selectSort(col) {
+        setSortBy(col?.name);
+        setOrder(-order);
+        setDatatype(col?.datatype || 'string');
+    }
+
+    /**
      * Render table component.
      * - Input columns (cols) must be object of form:
      *   [...{name: <column name>, label: <column label>, defaultSort: <boolean>}]
@@ -142,32 +139,34 @@ const Table = ({ rows, cols, className=''}) => {
      */
     return Array.isArray(rows) && Array.isArray(cols)
         ?
-        <table className={className}>
-            <thead>
-            <tr>
-                {
-                    cols.map((col, index) =>
-                        <th
-                            key={`${tableID}_col_${index}`}
-                            className={col.className}
-                            onClick={() => {_selectSort(col)}}
-                        >
-                            <div className={'h-menu'} style={{cursor: 'pointer'}}>
-                                <ul>
-                                    <li>{col.label}</li>
-                                    <li className={'push'} style={{visibility: `${col.name === sortBy ? 'visible' : 'hidden'}`}}>
-                                        <Icon type={order === 1 ? 'up' : 'down'}/>
-                                    </li>
-                                </ul>
-                            </div>
-                        </th>)
-                }
-            </tr>
-            </thead>
-            <TableBody tableID={tableID} rows={rows.sort(_compareFn)} cols={cols} />
-        </table>
+        <div className={scrollable ? 'scrollable' : ''}>
+            <table className={className}>
+                <thead>
+                    <tr>
+                        {
+                            cols.map((col, index) =>
+                                <th
+                                    key={`${tableID}_col_${index}`}
+                                    className={col.className}
+                                    onClick={() => { _selectSort(col) }}
+                                >
+                                    <div className={'h-menu'} style={{ cursor: 'pointer' }}>
+                                        <ul>
+                                            <li>{col.label}</li>
+                                            <li className={'push'} style={{ visibility: `${col.name === sortBy ? 'visible' : 'hidden'}` }}>
+                                                <Icon type={order === 1 ? 'up' : 'down'} />
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </th>)
+                        }
+                    </tr>
+                </thead>
+                <TableBody tableID={tableID} rows={rows.sort(_compareFn)} cols={cols} />
+            </table>
+        </div>
         :
-        <Loading/>
+        <Loading />
 }
 
 export default Table
