@@ -53,6 +53,8 @@ jobs:
       - name: Push Helm chart to GHCR (OCI)
         run: |
           PACKAGE="${{ steps.chart.outputs.name }}-${{ steps.chart.outputs.version }}.tgz"
-          OCI_REF="oci://ghcr.io/${{ github.repository_owner }}/${{ steps.chart.outputs.name }}"
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          CHART_NAME_LC=$(echo "${{ steps.chart.outputs.name }}" | tr '[:upper:]' '[:lower:]')
+          OCI_REF="oci://ghcr.io/${REPO_OWNER}/${CHART_NAME_LC}"
           echo "Pushing $PACKAGE to $OCI_REF"
           helm push "$PACKAGE" "$OCI_REF"
