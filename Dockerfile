@@ -17,14 +17,22 @@ RUN npm run build
 # Use nginx to serve the built files
 FROM nginx:alpine AS production
 
-# Copy built assets from build stage (React build output is in /app/build)
-COPY --from=build /app/build /usr/share/nginx/html
+# 1. Create a non-root setup
+# Nginx alpine has a default 'nginx' user with UID 101. 
+# We need to give this user ownership of the directories nginx uses.
+RUN touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid /var/cache/nginx /var/log/nginx /etc/nginx/conf.d
 
-# Copy custom nginx config if needed (optional)
-# COPY nginx.conf /etc/nginx/nginx.conf
+# 2. Switch to the non-root user
+USER nginx
 
-# Expose port 80
-EXPOSE 80
+# 3. Copy built assets
+COPY --from=build --chown=nginx:nginx /app/build /usr/share/nginx/html
 
-# Start nginx server
+# 4. Copy a custom config that uses port 8080 (Crucial!)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose the new non-privileged port
+EXPOSE 8080
+
 CMD ["nginx", "-g", "daemon off;"]

@@ -19,22 +19,27 @@ serviceAccount:
 
 podAnnotations: {}
 podLabels: {}
-# Leave empty to use container default (nginx:alpine runs as root).
-# For non-root, use an image like nginxinc/nginx-unprivileged and set runAsUser.
-podSecurityContext: {}
+
+# To satisfy 'restricted' PSA
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
 
 securityContext:
+  runAsNonRoot: true  # Required by your error log
   allowPrivilegeEscalation: false
-  # Set to false if nginx fails (needs write to /var/cache/nginx, /var/run)
-  readOnlyRootFilesystem: false
   capabilities:
     drop:
       - ALL
+  seccompProfile:     # Required by your error log
+    type: RuntimeDefault
 
+service:
 service:
   type: ClusterIP
   port: 80
-  targetPort: 80
+  targetPort: 8080
 
 ingress:
   enabled: true
@@ -54,11 +59,11 @@ ingress:
 
 resources:
   requests:
-    cpu: 50m
-    memory: 64Mi
-  limits:
     cpu: 200m
-    memory: 128Mi
+    memory: 1Gi
+  limits:
+    cpu: 500m
+    memory: 1Gi
 
 autoscaling:
   enabled: true
@@ -67,25 +72,18 @@ autoscaling:
   targetCPUUtilizationPercentage: 70
   # targetMemoryUtilizationPercentage: 80  # optional
 
-# Liveness probe
 livenessProbe:
   httpGet:
     path: /
-    port: http
-  initialDelaySeconds: 10
+    port: 8080
+  initialDelaySeconds: 15
   periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
 
-# Readiness probe
 readinessProbe:
   httpGet:
     path: /
-    port: http
-  initialDelaySeconds: 5
-  periodSeconds: 5
-  timeoutSeconds: 3
-  failureThreshold: 2
+    port: 8080
+  initialDelaySeconds: 10
 
 # Rolling update strategy
 strategy:
