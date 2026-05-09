@@ -6,7 +6,7 @@ replicaCount: 2
 image:
   repository: ghcr.io/runtime-software-development/mle-frontend
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: latest
 
 imagePullSecrets: []
 nameOverride: ""
