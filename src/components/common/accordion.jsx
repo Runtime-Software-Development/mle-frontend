@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Common.Accordion
  * File: accordion.js
- * Copyright(c) 2022 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  */
 

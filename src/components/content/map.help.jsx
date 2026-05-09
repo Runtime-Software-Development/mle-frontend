@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Content.Help.Map
  * File: map.help.js
- * Copyright(c) 2024 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------

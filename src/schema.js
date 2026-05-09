@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Schema
  * File: schema.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------
@@ -297,8 +297,8 @@ export const schema = {
         map_features: {
             attributes: {
                 order: 30,
-                label: "Map Features",
-                singular: "Map Feature"
+                label: "Map Boundaries and Features",
+                singular: "Map Boundary/Feature"
             },
             fieldsets: [
                 {
@@ -351,7 +351,8 @@ export const schema = {
                 dependents: [
                     'stations',
                     'historic_captures',
-                    'modern_captures'
+                    'modern_captures',
+                    'maps'
                 ],
                 files: false
             },
@@ -1916,20 +1917,20 @@ export const schema = {
         maps: {
             attributes: {
                 order: 12,
-                label: 'Maps',
-                singular: 'Map',
+                label: 'Map Boundaries and Features',
+                singular: 'Map Boundary/Feature',
             },
             fieldsets: [
                 {
                     legend: 'Map Details',
                     nts_map: {
-                        label: 'NTS Map'
+                        label: 'Label'
                     },
                     historic_map: {
-                        label: 'Historic Map'
+                        label: 'Historic Reference'
                     },
                     links: {
-                        label: 'Links to Maps'
+                        label: 'Additional Information'
                     },
                     map_features_id: {
                         render: 'mapFeature',

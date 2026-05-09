@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Providers.Data
  * File: data.provider.client.js
- * Copyright(c) 2022 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  */
 
@@ -19,6 +19,35 @@ import { popSessionMsg } from '../services/session.services.client';
  */
 
 const RouterContext = React.createContext({})
+
+/** Number of retries before marking API offline */
+const API_RETRY_COUNT = 3;
+/** Delay in ms between retries */
+const API_RETRY_DELAY_MS = 1500;
+/** Lightweight route used to probe API availability (must return JSON) */
+const PROBE_ROUTE = '/nodes/tree';
+
+/**
+ * Run a promise-returning function with retries.
+ * @param {Function} fn - function that returns a Promise
+ * @param {number} retries - number of attempts
+ * @param {number} delayMs - delay between attempts
+ * @returns {Promise}
+ */
+async function withRetry(fn, retries = API_RETRY_COUNT, delayMs = API_RETRY_DELAY_MS) {
+    let lastErr;
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            return await fn();
+        } catch (err) {
+            lastErr = err;
+            if (attempt < retries) {
+                await new Promise(r => setTimeout(r, delayMs));
+            }
+        }
+    }
+    throw lastErr;
+}
 
 /**
  * Provider component to allow consuming components to subscribe to
@@ -110,6 +139,27 @@ function RouterProvider(props) {
     }
 
     /**
+     * Probe API availability (ignores online flag). On success, sets online to true.
+     * Used for auto-recovery and the Retry button on the unavailable page.
+     * @returns {Promise<boolean>} true if API is back, false otherwise
+     */
+    const tryReconnect = async () => {
+        try {
+            const res = await makeRequest({
+                url: createAPIURL(PROBE_ROUTE),
+                method: 'GET'
+            });
+            if (res && res.success) {
+                setOnline(true);
+                return true;
+            }
+            return false;
+        } catch (err) {
+            return false;
+        }
+    };
+
+    /**
      * Data request method to fetch data from API.
      *
      * @public
@@ -123,13 +173,13 @@ function RouterProvider(props) {
         // reject null paths or when API is offline
         if (!route || !online) return null;
 
-        let res = await makeRequest({ url: createAPIURL(route, params), method: 'GET' })
-            .catch(err => {
-                // handle API connection errors
-                console.error('An API error occurred:', err)
-                setOnline(false);
-                return null;
-            });
+        let res = await withRetry(() =>
+            makeRequest({ url: createAPIURL(route, params), method: 'GET' })
+        ).catch(err => {
+            console.error('An API error occurred:', err);
+            setOnline(false);
+            return null;
+        });
 
         return handleResponse(res);
     };
@@ -153,17 +203,17 @@ function RouterProvider(props) {
         // parse form data
         const parsedData = formData && !json ? Object.fromEntries(formData) : formData && json ? formData : {};
 
-        let res = await makeRequest({
-            url: createAPIURL(route),
-            method: 'POST',
-            data: parsedData
-        })
-            .catch(err => {
-                // handle API connection errors
-                console.error('An API error occurred:', err);
-                setOnline(false);
-                return null;
-            });
+        let res = await withRetry(() =>
+            makeRequest({
+                url: createAPIURL(route),
+                method: 'POST',
+                data: parsedData
+            })
+        ).catch(err => {
+            console.error('An API error occurred:', err);
+            setOnline(false);
+            return null;
+        });
 
         return handleResponse(res);
     };
@@ -182,13 +232,13 @@ function RouterProvider(props) {
         // reject null paths or when API is offline
         if (!route || !online) return null;
 
-        let res = await makeRequest({ url: createAPIURL(route, params), method: 'DELETE' })
-            .catch(err => {
-                // handle API connection errors
-                console.error('An API error occurred:', err)
-                setOnline(false);
-                return null;
-            });
+        let res = await withRetry(() =>
+            makeRequest({ url: createAPIURL(route, params), method: 'DELETE' })
+        ).catch(err => {
+            console.error('An API error occurred:', err);
+            setOnline(false);
+            return null;
+        });
 
         return handleResponse(res);
     };
@@ -242,7 +292,8 @@ function RouterProvider(props) {
                 remove,
                 deletion,
                 online,
-                setOnline
+                setOnline,
+                tryReconnect
             }
         } {...props} />
     )

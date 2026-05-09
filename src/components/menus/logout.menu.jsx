@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Menus.Logout
  * File: login.menu.js
- * Copyright(c) 2022 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  */
 
@@ -28,7 +28,7 @@ const LogoutMenu = () => {
 
     return (
         <nav className={'main'}>
-            <Accordion type={'user'} label={ !nav.compact ? user.email : ''} hideOnClick={true}>
+            <Accordion type={'user'} hideOnClick={true}>
                 <ul className={'user-menu'}>
                         <li><b>{user.email} ({user.label})</b></li>
                         <li><Button

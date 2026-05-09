@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Menus.Login
  * File: login.menu.js
- * Copyright(c) 2022 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  */
 
@@ -51,7 +51,7 @@ const LoginMenu = () => {
             ? <div>User {user.email} is signed in.</div>
             :
             <nav className={'main'}>
-                <Accordion type={'user'} label={!nav.compact ? 'Sign In' : ''} hideOnClick={true}>
+                <Accordion type={'user'} hideOnClick={true}>
                     <div className={'user-menu'}>
                         <UserMessage
                             message={message}

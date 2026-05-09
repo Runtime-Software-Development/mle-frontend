@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Navigator.Tree
- * File: tree.navigator.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * File: tree.navigator.jsx
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------
@@ -483,7 +483,7 @@ const TreeNavigator = ({ hidden=true }) => {
                             key={`summary_stats`}
                             type={'chart'}
                             label={"Collection Summary"}
-                            open={true}
+                            open={false}
                         >
                             <table className={'stats'}>
                                 <tbody>
@@ -507,7 +507,7 @@ const TreeNavigator = ({ hidden=true }) => {
                                             key={`nav_tree_item__${key}_${index}`}
                                             type={key}
                                             label={getModelLabel(key, 'label')}
-                                            open={true}
+                                            open={false}
                                         >
                                             <TreeNodeList
                                                 items={nav.tree[key]}

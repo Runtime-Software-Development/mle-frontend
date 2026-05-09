@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Menus.Editor
  * File: editor.menu.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------
@@ -64,6 +64,7 @@ const EditorMenu = ({
                                size= 'lg',
                                visible=[
                                    'show',
+                                   'redirect',
                                    'edit',
                                    'remove',
                                    'new',
@@ -103,6 +104,7 @@ const EditorMenu = ({
             dialogID: dialogID,
             id: id,
             model: model,
+            type: model,
             label: label,
             metadata: metadata,
             owner: owner,

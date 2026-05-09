@@ -1,0 +1,60 @@
+name: Publish MLE Frontend Helm Chart to GHCR (OCI)
+
+on:
+  push:
+    branches:
+      - main
+      - dev-kubernetes
+    tags:
+      - 'v*.*.*'
+    paths:
+      - 'helm/**'
+      - '.github/workflows/publish-app-chart.yaml'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Publish Helm Chart (OCI)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.15.0'
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username ${{ github.actor }} \
+            --password-stdin
+
+      - name: Get Chart metadata
+        id: chart
+        run: |
+          CHART_NAME=$(grep '^name:' helm/Chart.yaml | sed 's/^name:[[:space:]]*//')
+          CHART_VERSION=$(grep '^version:' helm/Chart.yaml | sed 's/^version:[[:space:]]*//')
+          echo "name=$CHART_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Chart: $CHART_NAME $CHART_VERSION"
+
+      - name: Update Helm dependencies
+        run: helm dependency update ./helm
+
+      - name: Package Helm chart
+        run: helm package helm
+
+      - name: Push Helm chart to GHCR (OCI)
+        run: |
+          PACKAGE="${{ steps.chart.outputs.name }}-${{ steps.chart.outputs.version }}.tgz"
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          CHART_NAME_LC=$(echo "${{ steps.chart.outputs.name }}" | tr '[:upper:]' '[:lower:]')
+          OCI_REF="oci://ghcr.io/${REPO_OWNER}/${CHART_NAME_LC}"
+          echo "Pushing $PACKAGE to $OCI_REF"
+          helm push "$PACKAGE" "$OCI_REF"

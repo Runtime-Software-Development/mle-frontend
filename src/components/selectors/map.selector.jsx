@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Navigator.MapFeatures
  * File: mapfeatures.navigator.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------
@@ -12,14 +12,16 @@
  *
  * ---------
  * Revisions
-
+ * 
+ * 25-10-2025  SR  Added map boundaries/feature filter function.
  */
+
 
 import React from 'react';
 import { useNav } from "../../providers/nav.provider.client";
-import {useData} from "../../providers/data.provider.client";
-import {useDialog} from "../../providers/dialog.provider.client";
-import {useRouter} from "../../providers/router.provider.client";
+import { useData } from "../../providers/data.provider.client";
+import { useDialog } from "../../providers/dialog.provider.client";
+import { useRouter } from "../../providers/router.provider.client";
 import styles from '../styles/mapfeatures.module.css';
 import Table from "../common/table";
 import Button from "../common/button";
@@ -29,13 +31,14 @@ import InputSelector from "./input.selector";
 import Accordion from "../common/accordion";
 
 /**
- * Navigator map overlay component.
+ * Map feature selector component. Enables map features to overlay on map navigator tool.
  *
- * @public
+ * @param {function} callback - function to call when map features are selected
+ * @param {boolean} single - whether to allow single or multiple map features to be selected
+ * @param {string} value - default value for single map feature select
  * @return {JSX.Element}
  */
-
-function MapSelector({callback, single=false, value}) {
+function MapSelector({ callback, single = false, value }) {
 
     const nav = useNav();
     const api = useData();
@@ -45,7 +48,7 @@ function MapSelector({callback, single=false, value}) {
     const _isMounted = React.useRef(true);
 
     // create dynamic data states
-    const [selected, setSelected] = React.useState((nav.overlay || []).map(({id}) => {return id}));
+    const [selected, setSelected] = React.useState((nav.overlay || []).map(({ id }) => { return id }));
 
     // map features data
     const [loadedData, setLoadedData] = React.useState(null);
@@ -60,14 +63,14 @@ function MapSelector({callback, single=false, value}) {
 
     // prepare image table columns
     const cols = [
-        {name: 'check', label: '', sort: true, defaultSort: true},
-        {name: 'name', label: 'Name', sort: true},
-        {name: 'type', label: 'Type', sort: true},
-        {name: 'map_object', label: 'Group (Map Object)', sort: true},
+        { name: 'check', label: 'Selected', sort: true, datatype: 'select' },
+        { name: 'name', label: 'Name', sort: true, defaultSort: true  },
+        { name: 'type', label: 'Type', sort: true },
+        { name: 'map_object', label: 'Group (Map Object)', sort: true },
     ];
 
     // get map objects options
-    const { map_objects=[] } = api.options || {};
+    const { map_objects = [] } = api.options || {};
 
     /**
      * Handler for multiple map features selection
@@ -78,20 +81,37 @@ function MapSelector({callback, single=false, value}) {
     const _handleSelect = (id) => {
         // toggle inclusion of selected id
         selected.includes(id)
-            ? setSelected(data => {return data.filter(o => o !== id)})
-            : setSelected(data => ([ ...data, id ]));
+            ? setSelected(data => { return data.filter(o => o !== id) })
+            : setSelected(data => ([...data, id]));
     };
 
 
     /**
      * Reformat features array for selection table
+     * 
+     * This function takes the filteredFeatures array and maps it into a new array of objects with the following properties:
+     *   - className: active or inactive based on whether the feature is selected
+     *   - onClick: function to call when the feature is clicked
+     *   - id: the ID of the feature node
+     *   - check: an icon indicating whether the feature is selected
+     *   - name: the name of the feature
+     *   - value: the ID of the feature node
+     *   - label: the name of the feature
+     *   - map_object: the name of the map object to which the feature belongs
+     *   - map_object_id: the ID of the map object to which the feature belongs
+     *   - type: the type of the feature
+     *   - description: the description of the feature
+     *   - geometry: the geometry of the feature
+     *   - dependents: the dependents of the feature
+     * 
      * @private
+     * @returns {Array<Object>}
      */
     const _getFeatureList = () => {
         return [].concat.apply([], filteredFeatures)
             .map(feature => {
-                const {nodes_id, owner_id, name, type, description, geometry, dependents} = feature || {};
-                const {map_feature_types = []} = api.options || {};
+                const { nodes_id, owner_id, name, type, description, geometry, dependents } = feature || {};
+                const { map_feature_types = [] } = api.options || {};
                 // select image state label for value (if available)
                 const mapFeatureType = map_feature_types.find(opt => opt.value === type) || {};
                 const mapObject = map_objects.find(opt => opt.value === owner_id) || {};
@@ -105,6 +125,7 @@ function MapSelector({callback, single=false, value}) {
                     name: name,
                     value: nodes_id,
                     label: name,
+                    selected: (selected || []).includes(nodes_id),
                     map_object: mapObject.label || '',
                     map_object_id: mapObject.value || '',
                     type: mapFeatureType.label || '',
@@ -121,7 +142,7 @@ function MapSelector({callback, single=false, value}) {
      * @private
      */
     const _getFeatureIDs = (features) => {
-        return [].concat.apply([], features).map(({nodes_id}) => nodes_id);
+        return [].concat.apply([], features).map(({ nodes_id }) => nodes_id);
     }
 
     // retrieve map features
@@ -155,7 +176,7 @@ function MapSelector({callback, single=false, value}) {
     const _handleSubmit = () => {
         const selectedFeatures = (selected || []).map((selectedID) => {
             const feature = filteredFeatures.find(feature => feature.nodes_id === selectedID);
-            const {owner_id, name, type, description, geometry, dependents} = feature || {};
+            const { owner_id, name, type, description, geometry, dependents } = feature || {};
             const mapObject = map_objects.find(opt => opt.value === owner_id) || {};
             return {
                 id: selectedID,
@@ -202,7 +223,7 @@ function MapSelector({callback, single=false, value}) {
     const _handleClear = () => {
         setSelected([]);
         nav.setOverlay([]);
-        dialog.cancel();
+        // dialog.cancel();
     };
 
     /**
@@ -221,7 +242,7 @@ function MapSelector({callback, single=false, value}) {
         // split search string into array of terms (remove empty strings)
         const keywords = String(keywordFilter).trim().split(' ').filter(n => n);
         // map feature groups (map objects) into array of node IDs
-        const groupIDs = groupFilter.map(({value}) => parseInt(value));
+        const groupIDs = groupFilter.map(({ value }) => parseInt(value));
 
         /**
          * Handler for filtering map feature by keyword in name
@@ -231,7 +252,7 @@ function MapSelector({callback, single=false, value}) {
          * @param {Object} feature
          */
         const _filterByKeyword = (feature) => {
-            const {name} = feature || {};
+            const { name } = feature || {};
             // create regular expression to test terms in keyword string
             const re = new RegExp((keywords || []).join('|'), "i");
             // test terms against name string
@@ -246,7 +267,7 @@ function MapSelector({callback, single=false, value}) {
          * @param {Object} feature
          */
         const _filterByGroup = (feature) => {
-            const {owner_id} = feature || {};
+            const { owner_id } = feature || {};
             return (groupIDs || []).length === 0 || (groupIDs || []).includes(parseInt(owner_id));
         };
 
@@ -257,7 +278,7 @@ function MapSelector({callback, single=false, value}) {
 
         // update filtered data in state
         setFilteredFeatures(filtered);
-        setFilteredIDs(filtered.map(({id}) => id));
+        setFilteredIDs(filtered.map(({ id }) => id));
 
     }, [loadedData, keywordFilter, groupFilter, setFilteredFeatures, setFilteredIDs]);
 
@@ -267,7 +288,7 @@ function MapSelector({callback, single=false, value}) {
      * @param e
      */
     const _handleNameFilter = (e) => {
-        const {value} = e.target || {};
+        const { value } = e.target || {};
         setKeywordFilter(value);
         setSelected([]);
     }
@@ -285,16 +306,16 @@ function MapSelector({callback, single=false, value}) {
 
     return <fieldset className={'submit'}>
         <div>
-            <Accordion type={'filter'} label={'Filter Map Features'}>
-                <InputSelector
-                    id={'map_features_filter'}
-                    name={'map_features_filter'}
-                    value={keywordFilter}
-                    type={'text'}
-                    label={'Filter Name By Keyword'}
-                    onChange={_handleNameFilter}
-                    onSelect={()=>{}}
-                />
+            <InputSelector
+                id={'map_features_filter'}
+                name={'map_features_filter'}
+                value={keywordFilter}
+                type={'text'}
+                label={'Filter By Keyword'}
+                onChange={_handleNameFilter}
+                onSelect={() => { }}
+            />
+            <Accordion type={'filter'} label={'Filter By Feature Group'} open={false}>
                 <InputSelector
                     key={'filter_map_object'}
                     id={'filter_map_object'}
@@ -302,7 +323,7 @@ function MapSelector({callback, single=false, value}) {
                     type={'multiselect'}
                     value={groupFilter || ''}
                     selected={value || ''}
-                    label={'Filter By Feature Group'}
+                    label={'Select Feature Group(s)'}
                     options={api.options.map_objects}
                     onMultiselect={_handleGroupFilter}
                 />
@@ -317,10 +338,9 @@ function MapSelector({callback, single=false, value}) {
                         options={_getFeatureList()}
                         label={'Select a linked Map Feature'}
                         onChange={callback}
-                        onSelect={()=>{}}
+                        onSelect={() => { }}
                     /> :
                     <>
-
                         <div className={'h-menu'}>
                             <ul>
                                 <li>
@@ -337,22 +357,31 @@ function MapSelector({callback, single=false, value}) {
                                         onClick={_handleReset}
                                     />
                                 </li>
-                            </ul>
-                        </div>
-                        <Table rows={_getFeatureList()} cols={cols} className={`files`} />
-                        <Badge
-                            className={'active'}
-                            label={selected.length === 1 ?`${selected.length} map object selected.` : `${selected.length} map objects selected.`}
-                            icon={'map_objects'}
-                        />
-                        <div className={'h-menu'}>
-                            <ul>
+                                <li>
+                                    { (selected || []).length > 0 && 
+                                        <Badge 
+                                            className={'success'}
+                                            icon={'map_features'}
+                                            label={`${(selected || []).length} selected features`} 
+                                        />
+                                    }
+                                </li>
+                                <li className='push'>
+                                    <Button
+                                        disabled={(selected || []).length === 0}
+                                        icon={'success'}
+                                        label={selected.length > 0 ? 'Show Selected' : 'None Selected'}
+                                        className={'submit'}
+                                        onClick={ _handleSubmit}
+                                    />
+                                </li>
                                 <li>
                                     <Button
-                                        icon={Array.isArray(selected) && selected.length > 0 ? 'success' : 'cancel'}
-                                        label={Array.isArray(selected) && selected.length > 0 ? 'Select' : 'Clear Selection'}
-                                        className={'submit'}
-                                        onClick={Array.isArray(selected) && selected.length > 0 ? _handleSubmit : _handleClear}
+                                        icon={'reset'}
+                                        disabled={(selected || []).length === 0}
+                                        label={'Reset'}
+                                        className={'reset'}
+                                        onClick={_handleClear}
                                     />
                                 </li>
                                 <li>
@@ -364,8 +393,13 @@ function MapSelector({callback, single=false, value}) {
                                     />
                                 </li>
                             </ul>
-
                         </div>
+                        <Table 
+                            rows={_getFeatureList()} 
+                            cols={cols} 
+                            className={`files`}
+                            scrollable={true}
+                        />
                     </>
             }
         </div>

@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Navigator.Map
  * File: map.navigator.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------
@@ -26,7 +26,7 @@ import {debounce, useWindowSize} from '../../utils/events.utils.client';
 import Loading from "../common/loading";
 import {getPref, setPref} from "../../services/session.services.client";
 import {useNav} from "../../providers/nav.provider.client";
-import {getMarker, getBaseLayers, setFeaturePopup} from "../tools/map.tools";
+import {getMarker, getBaseLayers, setFeaturePopup, filterStationsByBoundary} from "../tools/map.tools";
 import Button from "../common/button";
 import 'leaflet-kml/L.KML.js';
 import {convertCoordDMS} from "../../utils/data.utils.client";
@@ -72,6 +72,7 @@ function MapNavigator({ filter, hidden }) {
 
     // let mapContainer = React.createRef();
     const mapID = 'map-container';
+    const isBoundaryFilterActive = true;
     const router = useRouter();
     const api = useData();
     const nav = useNav();
@@ -106,15 +107,17 @@ function MapNavigator({ filter, hidden }) {
     const mapFeatures = React.useRef(null);
 
     // refresh map tiles and  data
-    const _handleRefresh = () => {
-        const baseLayers = getBaseLayers(L);
-        baseLayers[selectedBaseLayer].addTo(mapObj.current);
-        setStale(true);
-    };
+    // const _handleRefresh = () => {
+    //     const baseLayers = getBaseLayers(L);
+    //     baseLayers[selectedBaseLayer].addTo(mapObj.current);
+    //     setStale(true);
+    // };
 
     // toggle markers as clustered
     const _handleCluster = () => {
-        setClustered(!clustered)
+        setClustered(!clustered);
+        // console.log('Map Defined Boundaries:', nav?.overlay?.geoJSON)
+
     };
 
     // toggle markers display
@@ -137,10 +140,30 @@ function MapNavigator({ filter, hidden }) {
     // - if single station, go to that station info page
     // - for multiple station, go to filter page for ids
     const loadStations = React.useCallback((ids = []) => {
-        ids.length === 1
-            ? router.update(createNodeRoute('stations', 'show', ids[0]))
-            : router.update(createRoute('/filter', { ids: ids }));
-    }, [router]);
+
+        if (ids.length === 0) return;
+        const params = {
+            ids: ids,
+            offset: 0,
+            limit: 1000
+        }
+
+        // fetch station data
+        router.get(createRoute('/filter', params))
+            .then(res => {
+                if (res?.error) throw new Error(res.error);
+                dialog.setCurrent({
+                    dialogID: 'items',
+                    model: 'stations',
+                    items: res?.response?.data?.results || [],
+                });
+            })
+            .catch(err => console.error(err));
+
+        // ids.length === 1
+        //     ? router.update(createNodeRoute('stations', 'show', ids[0]))
+        //     : router.update(createRoute('/filter', { ids: ids }));
+    }, [dialog]);
 
     // show metadata for item in view panel
     const loadViewPane = React.useCallback((id, model) => {
@@ -151,12 +174,28 @@ function MapNavigator({ filter, hidden }) {
     const getClusterMarkers = React.useCallback((currentIDs) => {
 
         if (!currentIDs || !showMarkers) return;
-
-        // apply user-defined filter
+        
+        /**
+         * Applies the data field filters defined in the navigation state.
+         * 
+         * Includes stations that:
+         * - have the filter property
+         * - either have an empty filter property or match in value
+         * 
+         * @param {Object} station - the station object to filter
+         * @returns {Boolean} true if the station passes the filter; false otherwise
+         */
         const _applyFilter = (station) => {
 
             // filter is empty
             if (Object.keys(nav.filter).length === 0) return true;
+
+            // console.log('Applying filter:', nav.filter, station);
+
+            // apply boundary filters
+            nav.overlay.forEach(({id, geoJSON}) => {
+
+            });
 
             // apply data field filters - include stations that:
             // - have the filter property
@@ -222,13 +261,18 @@ function MapNavigator({ filter, hidden }) {
         }
 
         // filter stations outside (padded) map view
-        const FilteredData = (nav.map || [])
+        let FilteredData = (nav.map || [])
             .filter(station => {
                 // filter stations not in map view
                 const coord = L.latLng(station.lat, station.lng);
                 // apply user-defined filter
                 return paddedViewBounds.contains(coord) && _applyFilter(station);
             });
+
+        // apply boundary filter if defined
+        if (isBoundaryFilterActive && nav.overlay && nav.overlay.length > 0) {
+            FilteredData = filterStationsByBoundary(FilteredData, nav.overlay);
+        }
 
         // Sort station coordinates into grid areas
         // - check if grid exists and apply
@@ -327,7 +371,7 @@ function MapNavigator({ filter, hidden }) {
             }, o);
             return o;
         }, []);
-    }, [nav, mapObj, loadStations, zoom, clustered, showMarkers]);
+    }, [nav, mapObj, zoom, clustered, showMarkers]);
 
     /**
      * Reset map view to new center coordinate and zoom level.
@@ -502,7 +546,6 @@ function MapNavigator({ filter, hidden }) {
             mapObj.current.on('error', err => {
                 console.warn(err);
             });
-
             setLoaded(true);
             setStale(false);
         }
@@ -577,7 +620,7 @@ function MapNavigator({ filter, hidden }) {
                 <Button
                     icon={'boundaries'}
                     size={'lg'}
-                    label={'Features'}
+                    label={'Boundaries'}
                     className={(nav.overlay || []).length > 0 ? 'activated' : ''}
                     onClick={_handleMapFeatures}
                 />

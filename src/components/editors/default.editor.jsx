@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Editors.Default
  * File: default.editor.js
- * Copyright(c) 2022 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  */
 
@@ -208,11 +208,9 @@ const Editor = ({
      */
 
     const _handleCompletion = () => {
-        const { data = {} } = response || {};
-        const { id = '', owner = {} } = api.destructure(data);
         nav.refresh();
         api.refresh();
-        callback(error, model, id, owner);
+        callback(error, model, response?.data?.id, response?.data?.owner_id);
     }
 
     // short activity description

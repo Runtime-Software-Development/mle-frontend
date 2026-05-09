@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Components.Views.Metadata
  * File: metadata.view.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * ----------
@@ -15,15 +15,13 @@
  * - 22-07-2023 Refactored out the participants view
  */
 
-import React from 'react';
 import {genSchema} from '../../services/schema.services.client';
 import {genID, sanitize} from '../../utils/data.utils.client';
 import {useData} from '../../providers/data.provider.client';
 import {useUser} from '../../providers/user.provider.client';
 import FilesView from "./files.view";
 import {AttachedMetadataView} from "./attached.view";
-import Button from "../common/button";
-import {useNav} from "../../providers/nav.provider.client";
+import { MapFeaturesView } from './maps.view';
 
 // generate random key
 const keyID = genID();
@@ -52,7 +50,6 @@ const MetadataView = ({
 
     const api = useData();
     const user = useUser();
-    const nav = useNav();
 
     // generate the model schema
     const { fieldsets = [] } = genSchema({
@@ -89,19 +86,12 @@ const MetadataView = ({
                     value = selected ? selected.label : value;
                 }
 
-                // select option label for display (if found for given value)
+                // render map features view
                 if (render === 'mapFeature' && value) {
                     const {map_features_id} = metadata || {};
                     return {
-                        value: <Button
-                                    icon={'map'}
-                                    className={'submit'}
-                                    name={'map_view'}
-                                    label={'View on Map'}
-                                    title={'View on Map'}
-                                    onClick={() => nav.addToOverlay([map_features_id])}
-                                 />,
-                        label: 'Map Feature'
+                        value: <MapFeaturesView map_features_id={map_features_id} key={`map_features_view_${map_features_id}`} />,
+                        label: 'Map Features'
                     }
                 }
 
@@ -170,11 +160,11 @@ const MetadataView = ({
                 <tbody>
                 <tr>
                     <th>Created</th>
-                    <td>{sanitize(node.created_at || file.created_at, 'datetime')}</td>
+                    <td>{sanitize(node?.created_at || file?.created_at || metadata?.created_at, 'datetime')}</td>
                 </tr>
                 <tr>
                     <th>Last Modified</th>
-                    <td>{sanitize(node.updated_at || file.updated_at, 'datetime')}</td>
+                    <td>{sanitize(node?.updated_at || file?.updated_at || metadata?.updated_at, 'datetime')}</td>
                 </tr>
                 </tbody>
             </table>

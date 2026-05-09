@@ -1,8 +1,8 @@
 /*!
  * MLE.Client.Providers.Navigation
  * File: nav.provider.client.js
- * Copyright(c) 2023 Runtime Software Development Inc.
- * Version 2.0
+ * Copyright (c) 2025 Runtime Software Development Inc.
+ * Version 2.1
  * MIT Licensed
  *
  * Description
@@ -200,7 +200,7 @@ function NavProvider(props) {
                         const { nodes={}, stats=[] } = data || {};
 
                         // [DEBUG]
-                        console.log('\n<<< Nav [Tree] >>>\n', res)
+                        // console.log('\n<<< Nav [Tree] >>>\n', res)
 
                         // check if response data is empty (set error flag if true)
                         if ( Object.keys(nodes).length === 0 ) {

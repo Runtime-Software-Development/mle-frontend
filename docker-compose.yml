@@ -4,13 +4,22 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+      target: build 
     ports:
-      - "3000:80"
+      - "3000:3000"
     restart: unless-stopped
     environment:
-      - NODE_ENV=production
+      # Ensure this is set to development for hot-reloading to work
+      - NODE_ENV=development
+      - PORT=3000
+      - CHOKIDAR_USEPOLLING=true  # Force-watch for file changes
+      - WATCHPACK_POLLING=true    # Specific fix for Webpack 5+
     env_file:
       - .env
     volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
+      # 3. CRITICAL FIX: Ensure volume path matches your Dockerfile's WORKDIR (/app)
+      - .:/app
+      # Exclude the host's node_modules (prevents conflicts/slow file watching)
+      - /app/node_modules
+    # This command uses the 'npm' that exists in the 'build' stage
+    command: npm start
