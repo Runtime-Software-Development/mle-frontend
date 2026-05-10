@@ -11,6 +11,7 @@ on:
       - 'package-lock.json'
       - 'src/**'
       - 'public/**'
+      - nginx.conf
   workflow_dispatch:
 
 env:

@@ -19,7 +19,6 @@ FROM nginx:alpine AS production
 
 # 1. Create a non-root setup
 # Nginx alpine has a default 'nginx' user with UID 101. 
-# We need to give this user ownership of the directories nginx uses.
 RUN touch /var/run/nginx.pid && \
     chown -R nginx:nginx /var/run/nginx.pid /var/cache/nginx /var/log/nginx /etc/nginx/conf.d
 
@@ -29,7 +28,7 @@ USER nginx
 # 3. Copy built assets
 COPY --from=build --chown=nginx:nginx /app/build /usr/share/nginx/html
 
-# 4. Copy a custom config that uses port 8080 (Crucial!)
+# 4. Copy a custom config that uses port 8080
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose the new non-privileged port
