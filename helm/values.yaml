@@ -44,19 +44,18 @@ service:
 
 ingress:
   enabled: true
-  className: ""
-  annotations: {}
-    # cert-manager.io/cluster-issuer: letsencrypt-prod
-    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  className: "traefik"
+  annotations: {} # No middlewares needed!
   hosts:
-    - host: mle-frontend.example.com
+    - host: mlp-explorer-dev.kestrel.arbutus.cloud
       paths:
         - path: /
           pathType: Prefix
-  tls: []
-  #  - secretName: mle-frontend-tls
-  #    hosts:
-  #      - mle-frontend.example.com
+          backend:
+            service:
+              name: mle-frontend # All traffic goes here
+              port:
+                number: 80
 
 resources:
   requests:
