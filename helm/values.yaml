@@ -13,6 +13,25 @@ imagePullSecrets:
 nameOverride: ""
 fullnameOverride: ""
 
+nginxConfig: |
+  server {
+      listen 8080;
+      server_name localhost;
+
+      location / {
+          root /usr/share/nginx/html;
+          index index.html index.htm;
+          try_files $uri $uri/ /index.html;
+      }
+
+      location /api/ {
+          rewrite ^/api/(.*) /$1 break;
+          proxy_pass http://mle-backend-mle-api-api-svc:3000;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+      }
+  }
+
 serviceAccount:
   create: true
   automount: true
@@ -36,7 +55,6 @@ securityContext:
   seccompProfile:     # Required by your error log
     type: RuntimeDefault
 
-service:
 service:
   type: ClusterIP
   port: 80
