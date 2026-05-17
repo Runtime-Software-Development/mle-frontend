@@ -12,6 +12,7 @@ on:
       - 'src/**'
       - 'public/**'
       - nginx.conf
+      - .env.production
   workflow_dispatch:
 
 env:
