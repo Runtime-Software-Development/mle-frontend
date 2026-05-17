@@ -30,6 +30,15 @@ nginxConfig: |
           proxy_set_header Host $host;
           proxy_set_header X-Real-IP $remote_addr;
       }
+
+      # Keycloak Authentication Proxy
+      location /auth/ {
+          proxy_pass http://mle-backend-mle-api-keycloak:8081/;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+      }
   }
 
 serviceAccount:
@@ -65,7 +74,7 @@ ingress:
   className: "traefik"
   annotations: {} # No middlewares needed!
   hosts:
-    - host: mlp-explorer-dev.kestrel.arbutus.cloud
+    - host: mlp-explorer-test.kestrel.arbutus.cloud
       paths:
         - path: /
           pathType: Prefix
