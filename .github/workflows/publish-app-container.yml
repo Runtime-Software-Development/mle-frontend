@@ -12,7 +12,7 @@ on:
       - 'src/**'
       - 'public/**'
       - nginx.conf
-      - .env.production
+      - '.env*'
   workflow_dispatch:
 
 env:
@@ -65,5 +65,8 @@ jobs:
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            REACT_APP_BASEURL=https://mlp-explorer-test.kestrel.arbutus.cloud
+            REACT_APP_API_BASEURL=https://mlp-explorer-test.kestrel.arbutus.cloud/api
           cache-from: type=gha
           cache-to: type=gha,mode=max
