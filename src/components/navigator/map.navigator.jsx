@@ -146,10 +146,12 @@ function MapNavigator({ filter, hidden }) {
             ids: ids,
             offset: 0,
             limit: 1000
-        }
+        };
 
-        // fetch station data
-        router.get(createRoute('/filter', params))
+        api.setLoaded(false);
+
+        // Get station data for selected cluster
+        router.post('/filter', params, true)
             .then(res => {
                 if (res?.error) throw new Error(res.error);
                 dialog.setCurrent({
@@ -158,11 +160,11 @@ function MapNavigator({ filter, hidden }) {
                     items: res?.response?.data?.results || [],
                 });
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => {
+                api.setLoaded(true);
+            });
 
-        // ids.length === 1
-        //     ? router.update(createNodeRoute('stations', 'show', ids[0]))
-        //     : router.update(createRoute('/filter', { ids: ids }));
     }, [dialog]);
 
     // show metadata for item in view panel

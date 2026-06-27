@@ -69,7 +69,7 @@ export const MapFeaturesView = ({ map_features_id }) => {
             limit: 1000
         }
         // fetch station data
-        router.get(createRoute('/filter', params))
+        router.post('/filter', params, true)
             .then(res => {
                 if (res?.error) return setError(res.error);
                 console.log('Station data response:', res?.response?.data);

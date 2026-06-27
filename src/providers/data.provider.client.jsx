@@ -275,6 +275,7 @@ function DataProvider(props) {
             {
                 refresh: _refresh,
                 loaded,
+                setLoaded: setLoaded,
                 view,
                 model,
                 path,

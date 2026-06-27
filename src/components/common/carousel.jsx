@@ -148,7 +148,8 @@ const Carousel = ({
                                 className={'capture-button'}
                                 icon={'externalLink'}
                                 onClick={() => {
-                                    router.update(itemLink)
+                                    router.update(itemLink);
+                                    dialog.clear();
                                 }}
                             />
                         </li>

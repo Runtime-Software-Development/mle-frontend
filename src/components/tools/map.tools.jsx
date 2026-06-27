@@ -244,8 +244,10 @@ export const setFeaturePopup = (id, feature, layer, callback) => {
         owner,          // Default owner
         owner_id,       
         owner_type, 
-        dependents = [] 
+        dependents,
     } = properties || {};
+
+    const deps = dependents ?? [];
 
     const popup = document.createElement('div');
     popup.className = 'leaflet-popup-custom-content';
@@ -259,8 +261,8 @@ export const setFeaturePopup = (id, feature, layer, callback) => {
         color: '#008896' // Default teal
     };
 
-    const projectDep = dependents.find(d => d.owner_type === 'project');
-    const seasonDep = dependents.find(d => d.owner_type === 'survey_season');
+    const projectDep = deps.find(d => d.owner_type === 'project');
+    const seasonDep = deps.find(d => d.owner_type === 'survey_season');
 
     if (projectDep) {
         headerData = {
