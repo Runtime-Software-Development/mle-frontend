@@ -1934,7 +1934,8 @@ export const schema = {
                     },
                     map_features_id: {
                         render: 'mapFeature',
-                        label: 'Map Features'
+                        label: 'Map Features',
+                        validate: ['isRequired']
                     }
                 }]
         },

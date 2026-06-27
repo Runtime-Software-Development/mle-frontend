@@ -115,7 +115,7 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
-  # targetMemoryUtilizationPercentage: 80  # optional
+  targetMemoryUtilizationPercentage: 80  # optional
 
 livenessProbe:
   httpGet:

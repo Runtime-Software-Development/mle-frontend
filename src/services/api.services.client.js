@@ -132,6 +132,34 @@ export const upload = async (route, formData, callback = () => { }, online = tru
 
     try {
 
+        const getResponseMessage = (response = {}, fallback = 'An API Error Occurred.') => {
+            if (!response || typeof response !== 'object') return fallback;
+
+            const detail = response.detail;
+            const message = response.message;
+            const error = response.error;
+
+            if (message && typeof message === 'object' && message.msg) return message.msg;
+            if (typeof message === 'string') return message;
+            if (error && typeof error === 'object' && error.msg) return error.msg;
+            if (typeof response.msg === 'string' && response.msg) return response.msg;
+            if (typeof detail === 'string' && detail) return detail;
+
+            if (Array.isArray(detail) && detail.length > 0) {
+                const first = detail[0];
+                if (typeof first === 'string' && first) return first;
+                if (first && typeof first === 'object') {
+                    if (typeof first.msg === 'string' && first.msg) return first.msg;
+                    if (typeof first.message === 'string' && first.message) return first.message;
+                    if (Array.isArray(first.loc) && typeof first.msg === 'string') {
+                        return `${first.loc.join('.')} - ${first.msg}`;
+                    }
+                }
+            }
+
+            return fallback;
+        };
+
         let xhr = new XMLHttpRequest();
         xhr.open('POST', createAPIURL(route), true);
         xhr.withCredentials = true;
@@ -142,8 +170,7 @@ export const upload = async (route, formData, callback = () => { }, online = tru
             if (xhr.readyState === 4) {
                 const { statusText = 'An API Error Occurred.' } = e.currentTarget || {};
                 const { response = {} } = e.currentTarget || {};
-                const { message = {} } = response || {};
-                const { msg = statusText } = message || {};
+                const msg = getResponseMessage(response, statusText);
 
                 // success
                 if (xhr.status === 200) {
@@ -151,7 +178,7 @@ export const upload = async (route, formData, callback = () => { }, online = tru
                 }
                 // error
                 else {
-                    return callback(null, { msg: msg, type: 'error' });
+                    return callback(null, { msg: msg, type: 'error' }, response);
                 }
             }
         };
