@@ -76,8 +76,6 @@ const DialogSelector = () => {
             callback = ()=>{}
         } = data || {};
 
-        console.log('Showing dialog:', dialogID, data);
-
         // generate unique key for dialog
         const _key = `dialog_${dialogID}_${model}_${id}_${index}`;
 

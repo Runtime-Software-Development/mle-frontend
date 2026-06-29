@@ -22,6 +22,7 @@ import Loading from "../common/loading";
 import {useDialog} from "../../providers/dialog.provider.client";
 import Button from "../common/button";
 import EditorMenu from "../menus/editor.menu";
+import {MapFeaturesView} from "./maps.view";
 
 // generate unique ID value for form inputs
 const menuID = genID();
@@ -354,6 +355,25 @@ const NodesView = ({model, data}) => {
 
     // add dependent nodes to tablist
     if (nodelist.length > 0) _tabItems = nodelist.concat(_tabItems);
+
+    // add map boundary tab if any maps are attached to this node
+    const attachedMapIds = (attached?.maps || [])
+        .map(map => map?.data?.map_features_id)
+        .filter(Boolean);
+
+    if (attachedMapIds.length > 0) {
+        _tabItems.push({
+            label: 'Maps',
+            data: <>
+                {attachedMapIds.map(mapId => (
+                    <MapFeaturesView
+                        key={`map_features_${mapId}`}
+                        map_features_id={mapId}
+                    />
+                ))}
+            </>
+        });
+    }
 
     // add metadata tab for current node
     // - place attached metadata and supplementary files in same tab

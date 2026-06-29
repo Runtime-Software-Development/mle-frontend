@@ -666,6 +666,15 @@ div.nav-scroll button {
     padding: 10px 20px 60px 20px;
 }
 
+.tree .root > .accordion.current-section {
+    border-color: coral;
+    background-color: rgba(255, 127, 80, 0.08);
+}
+
+.tree .root > .accordion.current-section .h-menu ul li button {
+    color: #FFFFFF;
+}
+
 .tree ul {
     list-style: none;
     text-align: left;
@@ -1778,6 +1787,51 @@ table.item tbody th {
     font-weight: bold;
     color: #EEEEEE;
     text-align: left;
+}
+
+table.item td .metadata-json {
+    margin: 0;
+    border: 1px solid #5b6f83;
+    background-color: rgba(47, 72, 88, 0.25);
+}
+
+table.item td .metadata-json .h-menu ul li button {
+    color: #dbe7f2 !important;
+    font-size: 12px;
+}
+
+table.item td .metadata-json-summary {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+table.item td .metadata-json-summary th,
+table.item td .metadata-json-summary td {
+    padding: 4px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+    vertical-align: top;
+}
+
+table.item td .metadata-json-summary thead th {
+    font-weight: bold;
+    color: #f0f6fb;
+}
+
+table.item td .metadata-json-pre {
+    margin: 0;
+    padding: 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 320px;
+    overflow: auto;
+    border-radius: 6px;
+    background-color: #11151b;
+    color: #d3f0ff;
+    line-height: 1.4;
+    font-size: 12px;
 }
 
 table.item tfoot {

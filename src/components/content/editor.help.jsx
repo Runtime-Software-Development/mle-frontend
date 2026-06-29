@@ -723,7 +723,7 @@ const explorerHelp = (gotoPage) => {
                             Filter or select the Map Feature to link and save.
                         </li>
                         <li>
-                            <Button icon={'maps'} label={'View on Map'} /> button will now appear in the metadata view for that Survey Season map.
+                            <Button icon={'maps'} label={'View on Map Tool'} /> button will now appear in the metadata view for that Survey Season map.
                         </li>
                     </ol>
                 </td>

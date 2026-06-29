@@ -72,7 +72,7 @@ export const MapFeaturesView = ({ map_features_id }) => {
         router.post('/filter', params, true)
             .then(res => {
                 if (res?.error) return setError(res.error);
-                console.log('Station data response:', res?.response?.data);
+                // console.log('Station data response:', res?.response?.data);
                 setStationData(res?.response?.data?.results || []);
             })
             .catch(err => console.error(err));
@@ -115,8 +115,8 @@ export const MapFeaturesView = ({ map_features_id }) => {
             icon={'map'}
             className={'submit'}
             name={'map_view'}
-            label={'View on Map'}
-            title={'View on Map'}
+            label={'View on Map Tool'}
+            title={'View on Map Tool'}
             onClick={() => _viewInMap()}
         />
         {stationData.length > 0 ? (

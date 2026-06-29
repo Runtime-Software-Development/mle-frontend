@@ -21,10 +21,82 @@ import {useData} from '../../providers/data.provider.client';
 import {useUser} from '../../providers/user.provider.client';
 import FilesView from "./files.view";
 import {AttachedMetadataView} from "./attached.view";
-import { MapFeaturesView } from './maps.view';
+import Accordion from '../common/accordion';
 
 // generate random key
 const keyID = genID();
+
+const normalizeJSONValue = (value) => {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    if (!trimmed) return value;
+    try {
+        return JSON.parse(trimmed);
+    } catch {
+        return value;
+    }
+};
+
+const summarizeJSONValue = (value) => {
+    if (value === null) return 'null';
+    if (Array.isArray(value)) return `Array (${value.length} items)`;
+    if (typeof value === 'object') return `Object (${Object.keys(value).length} fields)`;
+    return 'Value';
+};
+
+const formatPreviewValue = (value) => {
+    if (value === null) return 'null';
+    if (Array.isArray(value)) return `Array (${value.length})`;
+    if (typeof value === 'object') return `Object (${Object.keys(value).length})`;
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    const text = String(value);
+    return text.length > 80 ? `${text.slice(0, 77)}...` : text;
+};
+
+const ReadableJSONView = ({value}) => {
+    const normalized = normalizeJSONValue(value);
+    const isStructured = normalized !== null && typeof normalized === 'object';
+    const summary = summarizeJSONValue(normalized);
+    const topLevel = isStructured
+        ? Array.isArray(normalized)
+            ? normalized.map((item, index) => [String(index), item])
+            : Object.entries(normalized)
+        : [];
+    const pretty = isStructured
+        ? JSON.stringify(normalized, null, 2)
+        : String(normalized ?? '');
+
+    return (
+        <Accordion
+            className={'metadata-json'}
+            label={`JSON (${summary})`}
+            open={false}
+        >
+            {
+                topLevel.length > 0 &&
+                <table className={'metadata-json-summary'}>
+                    <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Value</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {
+                        topLevel.map(([key, item]) => {
+                            return <tr key={`json_preview_${keyID}_${key}`}>
+                                <th>{key}</th>
+                                <td>{formatPreviewValue(item)}</td>
+                            </tr>
+                        })
+                    }
+                    </tbody>
+                </table>
+            }
+            <pre className={'metadata-json-pre'} aria-label={'JSON Object'}>{pretty}</pre>
+        </Accordion>
+    );
+};
 
 /**
  * Render item metadata (and attached metadata, files) as table component.
@@ -86,13 +158,17 @@ const MetadataView = ({
                     value = selected ? selected.label : value;
                 }
 
-                // render map features view
-                if (render === 'mapFeature' && value) {
-                    const {map_features_id} = metadata || {};
+                // map features are now rendered in a dedicated tab in NodesView;
+                // skip rendering in the metadata table to avoid duplication.
+                if (render === 'mapFeature') {
+                    return { value: null, label: null };
+                }
+
+                if (render === 'json' && value !== null && String(value) !== '') {
                     return {
-                        value: <MapFeaturesView map_features_id={map_features_id} key={`map_features_view_${map_features_id}`} />,
-                        label: 'Map Features'
-                    }
+                        value: <ReadableJSONView value={value} />,
+                        label: fieldset.fields[fieldKey].label,
+                    };
                 }
 
                 // multiselect list of values (if available)
@@ -133,7 +209,9 @@ const MetadataView = ({
                         </thead>
                         <tbody>
                         {
-                            filterData(fieldset).map((field, index) => {
+                            filterData(fieldset)
+                                .filter(field => field.label !== null)
+                                .map((field, index) => {
                                 return (
                                     <tr key={`${keyID}_tr_${index}`}>
                                         <th>{field.label}</th>

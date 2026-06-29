@@ -122,7 +122,7 @@ const EditorMenu = ({
             return {
                 icon: 'add',
                 type: dependentType,
-                label: `Add New ${getModelLabel(dependentType)}`,
+                label: `Add ${getModelLabel(dependentType)}`,
                 callback: () => {_handleDialog(dependentType)}
             }
         })
@@ -176,6 +176,7 @@ const EditorMenu = ({
                 </li>
             }
             {
+                // open capture image in alignment tool
                 ( ( id && isCaptureType(model) ) || visible.includes('iat')) &&
                 <li key={`${menuID}_node_menuitem_iat`}>
                     <Button
@@ -188,6 +189,7 @@ const EditorMenu = ({
                 </li>
             }
             {
+                // Attach capture image to selected downloads
                 ( id && isImageType(model) && visible.includes('attach') ) &&
                 <li key={`${menuID}_menuitem_attach`}>
                     <Button

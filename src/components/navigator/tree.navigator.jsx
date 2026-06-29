@@ -462,10 +462,22 @@ const TreeNodeList = ({items}) => {
 const TreeNavigator = ({ hidden=true }) => {
 
     const nav = useNav();
+    const api = useData();
     const treeRef = React.useRef();
 
     // window dimensions
     const [, winHeight] = useWindowSize();
+
+    // highlight top-level accordion when a current path contains one of its root nodes
+    const _isCurrentSection = (key) => {
+        const sectionItems = nav.tree[key] || [];
+        const currentNodes = api.nodes || [];
+        return sectionItems.some(item => {
+            const {node = {}} = item || {};
+            const {id = ''} = node || {};
+            return !!id && currentNodes.includes(id);
+        });
+    };
 
     return <>
         {
@@ -505,6 +517,7 @@ const TreeNavigator = ({ hidden=true }) => {
                                     return (
                                         <Accordion
                                             key={`nav_tree_item__${key}_${index}`}
+                                            className={_isCurrentSection(key) ? 'current-section' : ''}
                                             type={key}
                                             label={getModelLabel(key, 'label')}
                                             open={false}

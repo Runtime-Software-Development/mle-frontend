@@ -341,16 +341,25 @@ export const setFeaturePopup = (id, feature, layer, callback) => {
  */
 export const filterStationsByBoundary = (stations, overlayFeatures) => {
 
-    if (!overlayFeatures || overlayFeatures.length === 0) {
-        return stations;
+    const normalizedStations = Array.isArray(stations) ? stations : [];
+    const normalizedOverlayFeatures = Array.isArray(overlayFeatures) ? overlayFeatures : [];
+
+    if (normalizedOverlayFeatures.length === 0) {
+        return normalizedStations;
     }
 
     // 1. Compile all active polygon geometries from the overlay features.
     // This now includes a conversion step for closed LineStrings.
-    const activePolygons = overlayFeatures
+    const activePolygons = normalizedOverlayFeatures
         // Flatten the array by extracting the feature objects from the geoJSON field.
         // This handles cases where geoJSON is a FeatureCollection or an array of features.
-        .flatMap(item => item.geoJSON.features || item.geoJSON)
+        .flatMap(item => {
+            const { geoJSON = null } = item || {};
+            if (!geoJSON) return [];
+            if (Array.isArray(geoJSON)) return geoJSON;
+            const { features = [] } = geoJSON || {};
+            return Array.isArray(features) ? features : [];
+        })
         // Convert closed LineStrings to Polygons and filter out non-spatial features
         .map(feature => {
             if (!feature || !feature.geometry) return null;
@@ -390,13 +399,18 @@ export const filterStationsByBoundary = (stations, overlayFeatures) => {
     // If no valid polygons are loaded, skip filtering and return all stations.
     if (activePolygons.length === 0) {
         console.warn("Spatial Filter: No valid Polygon, MultiPolygon, or closed LineString geometries found in overlay.");
-        return stations;
+        return normalizedStations;
     }
 
     // 2. Run the Point-in-Polygon test for every station.
-    return stations.filter(station => {
+    return normalizedStations.filter(station => {
+        const { lng = null, lat = null } = station || {};
+        if (lng === null || lat === null || Number.isNaN(Number(lng)) || Number.isNaN(Number(lat))) {
+            return false;
+        }
+
         // Create a Turf Point feature for the station: [longitude, latitude]
-        const point = turf.point([station.lng, station.lat]);
+        const point = turf.point([Number(lng), Number(lat)]);
 
         // Check if the station point falls within ANY of the active polygons
         for (const polygonFeature of activePolygons) {
