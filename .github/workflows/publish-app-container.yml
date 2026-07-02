@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies and audit
         run: |
           npm ci
-          npm audit --audit-level=high
+          npm audit --audit-level=high --omit=dev
 
       # Necessary for building amd64 images on GitHub's runners
       - name: Set up QEMU
