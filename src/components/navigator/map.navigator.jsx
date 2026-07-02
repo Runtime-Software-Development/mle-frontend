@@ -173,8 +173,6 @@ function MapNavigator({ filter, hidden }) {
             loading: true
         };
 
-        api.setLoaded(false);
-
         // Get station data for selected cluster
         router.post('/filter', params, true)
             .then(res => {
@@ -212,17 +210,15 @@ function MapNavigator({ filter, hidden }) {
                     loading: false
                 };
                 console.error(err);
-            })
-            .finally(() => {
-                api.setLoaded(true);
             });
 
     }, [api, dialog, router]);
 
     // show metadata for item in view panel
     const loadViewPane = React.useCallback((id, model) => {
+        api.setLoaded(false);
         router.update(createNodeRoute(model, 'show', id));
-    }, [router]);
+    }, [api, router]);
 
     // cluster station locations for n > 1
     const getClusterMarkers = React.useCallback((currentIDs) => {
@@ -425,7 +421,7 @@ function MapNavigator({ filter, hidden }) {
             }, o);
             return o;
         }, []);
-    }, [nav, mapObj, zoom, clustered, showMarkers]);
+    }, [nav, mapObj, zoom, clustered, showMarkers, loadStations]);
 
     /**
      * Reset map view to new center coordinate and zoom level.

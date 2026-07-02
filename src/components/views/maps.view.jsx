@@ -19,7 +19,7 @@ import Button from "../common/button";
 import { filterStationsByBoundary } from "../tools/map.tools";
 import { useRouter } from "../../providers/router.provider.client";
 import { useNav } from "../../providers/nav.provider.client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Accordion from "../common/accordion";
 import EditorMenu from "../menus/editor.menu";
 import NodesView from "./nodes.view";
@@ -61,10 +61,12 @@ export const MapFeaturesView = ({ map_features_id }) => {
         setNavView('map');
     }
 
-    const stationIds = stations
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map(station => station?.nodes_id)
-        .filter(Boolean);
+    const stationIds = useMemo(() => {
+        return [...stations]
+            .sort((a, b) => (a?.name || '').localeCompare(b?.name || ''))
+            .map(station => station?.nodes_id)
+            .filter(Boolean);
+    }, [stations]);
 
     // API call to retrieve station data (paginated)
     useEffect(() => {
