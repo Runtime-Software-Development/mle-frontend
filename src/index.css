@@ -2645,6 +2645,31 @@ Messages
     margin: 5px;
 }
 
+.dialog-load-more-wrap {
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+
+button.load-more-prominent {
+    width: 100%;
+    max-width: 360px;
+    background-color: #2ea591 !important;
+    border: 1px solid #2F4858 !important;
+    color: #FFFFFF !important;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(47, 72, 88, 0.35);
+}
+
+button.load-more-prominent:hover {
+    background-color: #2F4858 !important;
+    opacity: 1;
+}
+
+button.load-more-prominent:focus {
+    outline: 2px solid coral;
+    outline-offset: 2px;
+}
+
 .dialog .loading {
     position: absolute;
     width: fit-content;

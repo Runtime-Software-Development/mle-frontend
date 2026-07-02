@@ -62,6 +62,8 @@ const DialogSelector = () => {
         const {
             dialogID='',
             items = [],
+            hasMore = false,
+            onLoadMore = () => {},
             model = '',
             id = '',
             label = '',
@@ -145,14 +147,16 @@ const DialogSelector = () => {
                         </Accordion>
                     ))
                 }
-                <div className={'centred'}>
-                    <Button
-                        className={'cancel'}
-                        icon={'cancel'}
-                        label={'Close Info Panel'}
-                        onClick={_handleCancel}
-                    />
-                </div>
+                {
+                    hasMore &&
+                    <div className={'centred dialog-load-more-wrap'}>
+                        <Button
+                            className={'load-more-prominent'}
+                            label={'Load More'}
+                            onClick={onLoadMore}
+                        />
+                    </div>
+                }
             </Dialog>,
             show: <Dialog
                 key={_key}

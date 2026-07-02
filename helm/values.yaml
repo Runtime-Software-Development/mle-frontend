@@ -14,6 +14,15 @@ nameOverride: ""
 fullnameOverride: ""
 
 nginxConfig: |
+  log_format proxy_diagnostics '$time_iso8601 request_id=$request_id client=$remote_addr '
+    'method=$request_method uri="$request_uri" status=$status req_len=$request_length '
+    'bytes_sent=$body_bytes_sent req_time=$request_time '
+    'upstream_addr="$upstream_addr" upstream_status="$upstream_status" '
+    'upstream_connect_time="$upstream_connect_time" upstream_header_time="$upstream_header_time" '
+    'upstream_response_time="$upstream_response_time"';
+
+  access_log /var/log/nginx/access.log proxy_diagnostics;
+
   server {
     listen 8080;
     server_name localhost;
@@ -35,18 +44,20 @@ nginxConfig: |
     location /api/ {
         rewrite ^/api/(.*) /$1 break;
         proxy_pass http://mle-backend-mle-api-api-svc:3000;
-      proxy_http_version 1.0;
-      proxy_set_header Connection "close";
+        proxy_http_version 1.0;
+        proxy_set_header Connection "close";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-ID $request_id;
+        add_header X-Request-ID $request_id always;
 
         proxy_connect_timeout 10s;
         proxy_read_timeout    120s;
         proxy_send_timeout    120s;
-      proxy_next_upstream   error timeout invalid_header http_502 http_503 http_504;
-      proxy_next_upstream_tries 2;
+        proxy_next_upstream   error timeout invalid_header http_502 http_503 http_504;
+        proxy_next_upstream_tries 2;
 
         proxy_buffers         16 64k;
         proxy_buffer_size     64k;
@@ -59,16 +70,18 @@ nginxConfig: |
     # Image/static assets served by API static mount
     location /uploads/ {
         proxy_pass http://mle-backend-mle-api-api-svc:3000;
-      proxy_http_version 1.0;
-      proxy_set_header Connection "close";
+        proxy_http_version 1.0;
+        proxy_set_header Connection "close";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-ID $request_id;
+        add_header X-Request-ID $request_id always;
 
         proxy_read_timeout    120s;
-      proxy_next_upstream   error timeout invalid_header http_502 http_503 http_504;
-      proxy_next_upstream_tries 2;
+        proxy_next_upstream   error timeout invalid_header http_502 http_503 http_504;
+        proxy_next_upstream_tries 2;
         proxy_buffers         16 64k;
         proxy_buffer_size     64k;
         proxy_busy_buffers_size 128k;

@@ -8,12 +8,10 @@
 
 import React from "react";
 import { genID } from '../../utils/data.utils.client';
-import MetadataView from '../views/metadata.view';
 import { getModelLabel } from '../../services/schema.services.client';
 import Accordion from '../common/accordion';
 import PaginationMenu from '../menus/pagination.menu';
 import { useRouter } from '../../providers/router.provider.client';
-import { createRoute } from '../../utils/paths.utils.client';
 import NodesView from "../views/nodes.view";
 
 /**
@@ -38,31 +36,55 @@ const PaginationTools = ({data}) => {
     limit = parseInt(String(limit));
     offset = parseInt(String(offset));
 
-    // create search data state
-    const [searchOffset, setSearchOffset] = React.useState(offset);
+    const [pageData, setPageData] = React.useState({
+        query,
+        offset,
+        limit,
+        results,
+        count
+    });
+
+    React.useEffect(() => {
+        setPageData({
+            query,
+            offset,
+            limit,
+            results,
+            count
+        });
+    }, [query, offset, limit, results, count]);
+
+    const fetchPage = (updatedOffset) => {
+        const params = {
+            ids: pageData.query,
+            offset: updatedOffset,
+            limit: pageData.limit
+        };
+
+        router.post('/filter', params, true)
+            .then(res => {
+                if (res?.error) return;
+                const responseData = res?.response?.data || {};
+                setPageData(prev => ({
+                    ...prev,
+                    offset: updatedOffset,
+                    results: responseData?.results || [],
+                    count: responseData?.count ?? prev.count
+                }));
+            })
+            .catch(err => console.error(err));
+    };
 
     // handle previous page request
     const onPrev = () => {
-        const updatedOffset = searchOffset - limit
-        setSearchOffset(updatedOffset);
-        const params = {
-            ids: query,
-            offset: updatedOffset,
-            limit: limit
-        }
-        router.update(createRoute('/filter', params));
+        const updatedOffset = Math.max(pageData.offset - pageData.limit, 0);
+        fetchPage(updatedOffset);
     }
 
     // handle next page request
     const onNext = () => {
-        const updatedOffset = limit + searchOffset
-        setSearchOffset(updatedOffset);
-        const params = {
-            ids: query,
-            offset: updatedOffset,
-            limit: limit
-        }
-        router.update(createRoute('/filter', params));
+        const updatedOffset = pageData.offset + pageData.limit;
+        fetchPage(updatedOffset);
     }
 
     // prepare item data for list
@@ -70,7 +92,7 @@ const PaginationTools = ({data}) => {
     // - return complete node item for each list element
     const filterItems = () => {
 
-        return results.map((item, index) => {
+        return pageData.results.map((item, index) => {
 
             const {node={}, label=''} = item || {};
 
@@ -87,21 +109,21 @@ const PaginationTools = ({data}) => {
         });
     }
 
-    const hasNext = count >= searchOffset + limit;
-    const hasPrev = 0 < searchOffset;
+    const hasNext = pageData.count > (pageData.offset + pageData.limit);
+    const hasPrev = pageData.offset > 0;
 
     return <>
-        <h4>{ results.length > 0 &&`Results found: ${count}` }</h4>
+        <h4>{ pageData.results.length > 0 &&`Results found: ${pageData.count}` }</h4>
         <PaginationMenu
-            total={count}
+            total={pageData.count}
             hasPrev={hasPrev}
             hasNext={hasNext}
             onPrev={onPrev}
             onNext={onNext}
         />
         {
-            count > 0
-            ? <ol className={'items'} start={offset + 1}>
+            pageData.count > 0
+            ? <ol className={'items'} start={pageData.offset + 1}>
                 {
                     filterItems()
                 }
@@ -109,7 +131,7 @@ const PaginationTools = ({data}) => {
             : <p>No Results.</p>
         }
         <PaginationMenu
-            total={count}
+            total={pageData.count}
             hasPrev={hasPrev}
             hasNext={hasNext}
             onPrev={onPrev}

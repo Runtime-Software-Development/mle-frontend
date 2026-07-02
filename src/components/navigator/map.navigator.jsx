@@ -21,7 +21,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useRouter } from '../../providers/router.provider.client';
 import { useData } from '../../providers/data.provider.client';
-import {createNodeRoute, createRoute} from '../../utils/paths.utils.client';
+import {createNodeRoute} from '../../utils/paths.utils.client';
 import {debounce, useWindowSize} from '../../utils/events.utils.client';
 import Loading from "../common/loading";
 import {getPref, setPref} from "../../services/session.services.client";
@@ -58,6 +58,7 @@ const initCentre = {lat: 51.311809, lng: -119.249230};
  * Default base layer
  */
 const defaultBaseLayer = 'Satellite Imagery';
+const FILTER_PAGE_SIZE = 10;
 
 /**
  * Map navigator component.
@@ -105,6 +106,13 @@ function MapNavigator({ filter, hidden }) {
     const mapObj = React.useRef(null);
     const stationMarkers = React.useRef(null);
     const mapFeatures = React.useRef(null);
+    const clusterDialogState = React.useRef({
+        ids: [],
+        items: [],
+        offset: 0,
+        count: 0,
+        loading: false
+    });
 
     // refresh map tiles and  data
     // const _handleRefresh = () => {
@@ -139,13 +147,25 @@ function MapNavigator({ filter, hidden }) {
     // request station(s) view in selected cluster
     // - if single station, go to that station info page
     // - for multiple station, go to filter page for ids
-    const loadStations = React.useCallback((ids = []) => {
+    const loadStations = React.useCallback((ids = [], append = false) => {
 
         if (ids.length === 0) return;
+        if (append && clusterDialogState.current.loading) return;
+
+        const nextOffset = append
+            ? clusterDialogState.current.offset + FILTER_PAGE_SIZE
+            : 0;
+
         const params = {
             ids: ids,
-            offset: 0,
-            limit: 1000
+            offset: nextOffset,
+            limit: FILTER_PAGE_SIZE
+        };
+
+        clusterDialogState.current = {
+            ...clusterDialogState.current,
+            ids: ids,
+            loading: true
         };
 
         api.setLoaded(false);
@@ -154,18 +174,46 @@ function MapNavigator({ filter, hidden }) {
         router.post('/filter', params, true)
             .then(res => {
                 if (res?.error) throw new Error(res.error);
+
+                const data = res?.response?.data || {};
+                const results = data?.results || [];
+                const total = data?.count || 0;
+
+                const mergedItems = append
+                    ? [...clusterDialogState.current.items, ...results]
+                    : results;
+
+                clusterDialogState.current = {
+                    ids: ids,
+                    items: mergedItems,
+                    offset: nextOffset,
+                    count: total,
+                    loading: false
+                };
+
+                dialog.clear();
                 dialog.setCurrent({
                     dialogID: 'items',
                     model: 'stations',
-                    items: res?.response?.data?.results || [],
+                    items: mergedItems,
+                    hasMore: mergedItems.length < total,
+                    onLoadMore: () => {
+                        loadStations(ids, true);
+                    }
                 });
             })
-            .catch(err => console.error(err))
+            .catch(err => {
+                clusterDialogState.current = {
+                    ...clusterDialogState.current,
+                    loading: false
+                };
+                console.error(err);
+            })
             .finally(() => {
                 api.setLoaded(true);
             });
 
-    }, [dialog]);
+    }, [api, dialog, router]);
 
     // show metadata for item in view panel
     const loadViewPane = React.useCallback((id, model) => {

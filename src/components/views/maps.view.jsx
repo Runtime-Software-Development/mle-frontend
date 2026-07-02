@@ -19,13 +19,15 @@ import Button from "../common/button";
 import { filterStationsByBoundary } from "../tools/map.tools";
 import { useRouter } from "../../providers/router.provider.client";
 import { useNav } from "../../providers/nav.provider.client";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Accordion from "../common/accordion";
 import EditorMenu from "../menus/editor.menu";
 import NodesView from "./nodes.view";
-import { createRoute } from "../../utils/paths.utils.client";
 import { getModelLabel } from "../../services/schema.services.client";
-import {setNavView, setPref} from "../../services/session.services.client";
+import {setNavView} from "../../services/session.services.client";
+import PaginationMenu from "../menus/pagination.menu";
+
+const FILTER_PAGE_SIZE = 25;
 
 /**
  * Attached node data component.
@@ -43,6 +45,8 @@ export const MapFeaturesView = ({ map_features_id }) => {
     const router = useRouter();
     const [stationData, setStationData] = useState([]);
     const [stations, setStations] = useState([]);
+    const [count, setCount] = useState(0);
+    const [pageOffset, setPageOffset] = useState(0);
     const [error, setError] = useState(null);
 
     // Sets the current navigation mode (tree/map/search/etc.)
@@ -57,37 +61,62 @@ export const MapFeaturesView = ({ map_features_id }) => {
         setNavView('map');
     }
 
-    // API call to retrieve station data
+    const stationIds = stations
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(station => station?.nodes_id)
+        .filter(Boolean);
+
+    // API call to retrieve station data (paginated)
     useEffect(() => {
 
-        if (stations.length === 0) return;
-        const params = {
-            ids: stations
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map(station => station?.nodes_id),
-            offset: 0,
-            limit: 1000
+        if (stationIds.length === 0) {
+            setStationData([]);
+            setCount(0);
+            return;
         }
+
+        const params = {
+            ids: stationIds,
+            offset: pageOffset,
+            limit: FILTER_PAGE_SIZE
+        }
+
         // fetch station data
         router.post('/filter', params, true)
             .then(res => {
                 if (res?.error) return setError(res.error);
-                // console.log('Station data response:', res?.response?.data);
-                setStationData(res?.response?.data?.results || []);
+                const data = res?.response?.data || {};
+                setStationData(data?.results || []);
+                setCount(data?.count || 0);
             })
             .catch(err => console.error(err));
 
-    }, [stations]);
+    }, [stationIds, pageOffset]);
 
     useEffect(() => {
         if (!map_features_id) return;
         nav.addToOverlay([map_features_id]);
+        setPageOffset(0);
         setStations(filterStationsByBoundary(nav.map, nav.overlay) || []);
     }, []);
 
     useEffect(() => {
+        setPageOffset(0);
         setStations(filterStationsByBoundary(nav.map, nav.overlay) || []);
     }, [nav.overlay]);
+
+    const hasNext = count > (pageOffset + FILTER_PAGE_SIZE);
+    const hasPrev = pageOffset > 0;
+
+    const onPrev = () => {
+        setPageOffset(Math.max(0, pageOffset - FILTER_PAGE_SIZE));
+    };
+
+    const onNext = () => {
+        if (hasNext) {
+            setPageOffset(pageOffset + FILTER_PAGE_SIZE);
+        }
+    };
 
     // prepare item data for list
     // - set render option for each item data field
@@ -121,8 +150,22 @@ export const MapFeaturesView = ({ map_features_id }) => {
         />
         {stationData.length > 0 ? (
             <div>
-                <h4>Stations within Map Boundary:</h4>
+                <h4>Stations within Map Boundary: {count}</h4>
+                <PaginationMenu
+                    total={count}
+                    hasPrev={hasPrev}
+                    hasNext={hasNext}
+                    onPrev={onPrev}
+                    onNext={onNext}
+                />
                     {loadData()}
+                <PaginationMenu
+                    total={count}
+                    hasPrev={hasPrev}
+                    hasNext={hasNext}
+                    onPrev={onPrev}
+                    onNext={onNext}
+                />
             </div>
         ) : (
             <p>Loading stations found within this map feature...</p>
