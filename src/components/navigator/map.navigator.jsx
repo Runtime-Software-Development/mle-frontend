@@ -156,9 +156,14 @@ function MapNavigator({ filter, hidden }) {
             ? clusterDialogState.current.offset + FILTER_PAGE_SIZE
             : 0;
 
+        const pageIds = ids.slice(nextOffset, nextOffset + FILTER_PAGE_SIZE);
+        const total = ids.length;
+
+        if (pageIds.length === 0) return;
+
         const params = {
-            ids: ids,
-            offset: nextOffset,
+            ids: pageIds,
+            offset: 0,
             limit: FILTER_PAGE_SIZE
         };
 
@@ -177,7 +182,6 @@ function MapNavigator({ filter, hidden }) {
 
                 const data = res?.response?.data || {};
                 const results = data?.results || [];
-                const total = data?.count || 0;
 
                 const mergedItems = append
                     ? [...clusterDialogState.current.items, ...results]
@@ -196,7 +200,7 @@ function MapNavigator({ filter, hidden }) {
                     dialogID: 'items',
                     model: 'stations',
                     items: mergedItems,
-                    hasMore: mergedItems.length < total,
+                    hasMore: (nextOffset + FILTER_PAGE_SIZE) < total,
                     onLoadMore: () => {
                         loadStations(ids, true);
                     }

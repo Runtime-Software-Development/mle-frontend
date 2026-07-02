@@ -75,9 +75,11 @@ export const MapFeaturesView = ({ map_features_id }) => {
             return;
         }
 
+        const pagedIds = stationIds.slice(pageOffset, pageOffset + FILTER_PAGE_SIZE);
+
         const params = {
-            ids: stationIds,
-            offset: pageOffset,
+            ids: pagedIds,
+            offset: 0,
             limit: FILTER_PAGE_SIZE
         }
 
@@ -87,7 +89,7 @@ export const MapFeaturesView = ({ map_features_id }) => {
                 if (res?.error) return setError(res.error);
                 const data = res?.response?.data || {};
                 setStationData(data?.results || []);
-                setCount(data?.count || 0);
+                setCount(stationIds.length);
             })
             .catch(err => console.error(err));
 
