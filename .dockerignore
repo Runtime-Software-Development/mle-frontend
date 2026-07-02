@@ -1,0 +1,10 @@
+.git
+.github
+.gitignore
+.dockerignore
+*.md
+docs/
+helm/
+node_modules/
+build/
+.env*
