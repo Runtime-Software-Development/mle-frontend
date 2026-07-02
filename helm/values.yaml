@@ -18,6 +18,13 @@ nginxConfig: |
     listen 8080;
     server_name localhost;
 
+    server_tokens off;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
     location / {
         root /usr/share/nginx/html;
         index index.html index.htm;
@@ -28,10 +35,22 @@ nginxConfig: |
     location /api/ {
         rewrite ^/api/(.*) /$1 break;
         proxy_pass http://mle-backend-mle-api-api-svc:3000;
+      proxy_http_version 1.0;
+      proxy_set_header Connection "close";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 10s;
+        proxy_read_timeout    120s;
+        proxy_send_timeout    120s;
+      proxy_next_upstream   error timeout invalid_header http_502 http_503 http_504;
+      proxy_next_upstream_tries 2;
+
+        proxy_buffers         16 64k;
+        proxy_buffer_size     64k;
+        proxy_busy_buffers_size 128k;
 
         client_max_body_size 1000m;
         proxy_request_buffering off;
@@ -40,10 +59,19 @@ nginxConfig: |
     # Image/static assets served by API static mount
     location /uploads/ {
         proxy_pass http://mle-backend-mle-api-api-svc:3000;
+      proxy_http_version 1.0;
+      proxy_set_header Connection "close";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_read_timeout    120s;
+      proxy_next_upstream   error timeout invalid_header http_502 http_503 http_504;
+      proxy_next_upstream_tries 2;
+        proxy_buffers         16 64k;
+        proxy_buffer_size     64k;
+        proxy_busy_buffers_size 128k;
     }
 
     # Keycloak proxy

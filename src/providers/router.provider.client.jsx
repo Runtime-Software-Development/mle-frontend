@@ -25,7 +25,7 @@ const API_RETRY_COUNT = 3;
 /** Delay in ms between retries */
 const API_RETRY_DELAY_MS = 1500;
 /** Lightweight route used to probe API availability (must return JSON) */
-const PROBE_ROUTE = '/nodes/tree';
+const PROBE_ROUTE = '/healthz';
 
 /**
  * Run a promise-returning function with retries.

@@ -398,14 +398,22 @@ const NodesView = ({model, data}) => {
             ? _tabItems.length > 0
                 ? <Tabs prefKey={prefTabKey} className={'nodes'} items={_tabItems} orientation={'horizontal'}/>
                 : <Loading/>
-            : <MetadataView
-                key={prefTabKey}
-                metadata={metadata}
-                model={model}
-                node={node}
-                attached={attached}
-                files={files}
-            />
+            : <>
+                {attachedMapIds.map(mapId => (
+                    <MapFeaturesView
+                        key={`map_features_${mapId}`}
+                        map_features_id={mapId}
+                    />
+                ))}
+                <MetadataView
+                    key={prefTabKey}
+                    metadata={metadata}
+                    model={model}
+                    node={node}
+                    attached={attached}
+                    files={files}
+                />
+              </>
         }
         </>
 
