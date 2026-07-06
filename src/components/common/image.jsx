@@ -54,14 +54,53 @@ const Image = ({
                    onClick=()=>{},
 }) => {
 
+    const resolveImageSrc = (inputUrl, inputScale) => {
+        const normalizeUploadURL = (candidate) => {
+            if (!candidate || typeof candidate !== 'string') return candidate;
+
+            try {
+                const parsed = new URL(candidate, window.location.origin);
+                if (parsed.pathname.startsWith('/uploads/')) {
+                    return `${window.location.origin}${parsed.pathname}${parsed.search}`;
+                }
+            } catch (err) {
+                return candidate;
+            }
+
+            return candidate;
+        };
+
+        if (!inputUrl) return fallbackSrc;
+
+        if (typeof inputUrl === 'string') {
+            return normalizeUploadURL(inputUrl);
+        }
+
+        if (typeof inputUrl !== 'object') {
+            return fallbackSrc;
+        }
+
+        if (inputScale && inputUrl[inputScale]) {
+            return inputUrl[inputScale];
+        }
+
+        const fallbackKeys = ['medium', 'large', 'small', 'thumb', 'url', 'src', 'original'];
+        for (const key of fallbackKeys) {
+            if (inputUrl[key]) return normalizeUploadURL(inputUrl[key]);
+        }
+
+        const firstValue = Object.values(inputUrl).find(value => typeof value === 'string' && value);
+        return firstValue ? normalizeUploadURL(firstValue) : fallbackSrc;
+    };
+
     // fallback for null or empty url
-    if (!url || Object.keys(url).length === 0) {
+    if (!url || (typeof url === 'object' && Object.keys(url).length === 0)) {
         url = fallbackSrc;
     }
     const isFallback = url === fallbackSrc;
 
     // image URL: with scale settings / URL string
-    const [src, setSrc] = React.useState(url.hasOwnProperty(scale) && scale ? url[scale] : url );
+    const [src, setSrc] = React.useState(resolveImageSrc(url, scale));
     const [loaded, setLoaded] = React.useState(false );
     const [error, setError] = React.useState(false);
 
@@ -85,8 +124,7 @@ const Image = ({
     // update image source
     React.useEffect(()=> {
         if (!error) {
-            // setSrc(scale && Object.keys(url).length > 0 ? url[scale].replace(localURL, remoteURL) : url);
-            setSrc(url && typeof url === 'object' && scale && url.hasOwnProperty(scale) ? url[scale] : url);
+            setSrc(resolveImageSrc(url, scale));
         }
     }, [url, setSrc, scale, error])
 

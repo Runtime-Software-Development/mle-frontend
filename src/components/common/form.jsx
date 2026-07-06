@@ -265,6 +265,9 @@ const Form = ({
                     ? `${fieldName[0]}[${copyIndex[fieldName[0]]++}]`
                     : key;
 
+                const isJSONField = (validators[key]?.checks || [])
+                    .some(check => check.name === 'isJSON');
+
                 // append files
                 if (data[key] instanceof FileList) {
                     for (let i = 0; i < data[key].length; i++) {
@@ -281,6 +284,17 @@ const Form = ({
                         data[key].forEach((opt, index) => {
                             formData.append(`${updatedKey}[${index}]`, opt.value || opt || '');
                         })
+                    }
+                    else if (isJSONField) {
+                        // Keep JSON fields as valid JSON strings so the API can persist them safely.
+                        if (typeof data[key] === 'string') {
+                            if (data[key].trim() !== '') {
+                                formData.append(updatedKey, data[key]);
+                            }
+                        }
+                        else if (data[key] && typeof data[key] === 'object') {
+                            formData.append(updatedKey, JSON.stringify(data[key]));
+                        }
                     }
                     else {
                         formData.append(updatedKey, data[key] || '');
