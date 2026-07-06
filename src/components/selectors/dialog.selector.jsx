@@ -356,7 +356,9 @@ const DialogSelector = () => {
                     onRefresh={_handleRefresh}
                     onCancel={_handleCancel}
                     callback={(error, model, id) => {
-                        error ? _handleCallback() : redirect(createNodeRoute(model, 'show', id));
+                        error || !id
+                            ? _handleCallback()
+                            : redirect(createNodeRoute(model, 'show', id));
                     }}
                 />
             </Dialog>,
@@ -374,7 +376,9 @@ const DialogSelector = () => {
                     onRefresh={_handleRefresh}
                     onCancel={_handleCancel}
                     callback={(error, model, id) => {
-                        error ? _handleCallback() : redirect(createNodeRoute(model, 'show', id));
+                        error || !id
+                            ? _handleCallback()
+                            : redirect(createNodeRoute(model, 'show', id));
                     }}
                 />
             </Dialog>,
@@ -392,7 +396,9 @@ const DialogSelector = () => {
                     onRefresh={_handleRefresh}
                     onCancel={_handleCancel}
                     callback={(error, model, id) => {
-                        error ? _handleCallback() : redirect(createNodeRoute(model, 'show', id));
+                        error || !id
+                            ? _handleCallback()
+                            : redirect(createNodeRoute(model, 'show', id));
                     }}
                 />
             </Dialog>,

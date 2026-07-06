@@ -74,6 +74,26 @@ const Editor = ({
     // check if schema includes file uploads
     const hasUploads = schema.hasOwnProperty('hasFiles') ? schema.hasFiles : false;
 
+    const getCreatedId = (res = {}, modelName = '') => {
+        const payload = res?.data && typeof res.data === 'object' ? res.data : res || {};
+
+        if (payload?.id) return payload.id;
+        if (res?.id) return res.id;
+        if (payload?.node?.id) return payload.node.id;
+        if (payload?.node_id) return payload.node_id;
+
+        const singularModel = (modelName || '').endsWith('s')
+            ? (modelName || '').slice(0, -1)
+            : modelName;
+
+        if (singularModel && payload?.[`${singularModel}_id`]) {
+            return payload[`${singularModel}_id`];
+        }
+
+        const anyIdKey = Object.keys(payload || {}).find(key => key.endsWith('_id') && payload[key]);
+        return anyIdKey ? payload[anyIdKey] : null;
+    };
+
     // form data loader
     const defaultLoader = async () => {
         const { node = {} } = reference || {};
@@ -210,7 +230,12 @@ const Editor = ({
     const _handleCompletion = () => {
         nav.refresh();
         api.refresh();
-        callback(error, model, response?.data?.id, response?.data?.owner_id);
+        callback(
+            error,
+            model,
+            getCreatedId(response, model),
+            response?.data?.owner_id
+        );
     }
 
     // short activity description

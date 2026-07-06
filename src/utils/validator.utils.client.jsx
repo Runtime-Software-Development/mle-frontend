@@ -130,6 +130,18 @@ const _inputValidations =
          */
 
         isJSON: (value) => {
+            if (value === null || typeof value === 'undefined' || value === '') {
+                return true;
+            }
+
+            if (typeof value === 'object') {
+                return true;
+            }
+
+            if (typeof value !== 'string') {
+                return false;
+            }
+
             try {
                 const o = JSON.parse(value);
 

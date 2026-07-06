@@ -11,7 +11,7 @@ import React from "react";
 const NotfoundError = () => {
     return (
         <div>
-            <p>Looking for requested page...</p>
+            <p>Loading requested page...</p>
         </div>
     );
 }

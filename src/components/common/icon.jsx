@@ -286,7 +286,7 @@ const getIconClass = (iconType) => {
         delete: 'trash-alt',
         import: 'file-import',
         export: 'file-export',
-        extract: 'file-export',
+        extract: 'map',
         attach: 'paperclip',
         scroll: 'location-arrow',
         externalLink: 'external-link-square-alt',
