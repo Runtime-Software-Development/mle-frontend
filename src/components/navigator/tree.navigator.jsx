@@ -223,7 +223,7 @@ const TreeNode = ({data}) => {
                         // destructure any available dependent nodes
                         const {response = {}} = res || {};
                         let {data = {}} = response || {};
-                        const {dependents = []} = data || {};
+                        const dependents = Array.isArray(data?.dependents) ? data.dependents : [];
 
                         // separate sorted from unsorted captures or non-capture nodes
                         const unsorted = dependents.filter(item => {

@@ -134,8 +134,11 @@ const NodesView = ({model, data}) => {
     // set preference tab ID
     const prefTabKey = `pref_tab_${model}_${id}`;
 
+    // normalize dependent payloads (API may return null while marking hasDependents=true)
+    const initialDependents = Array.isArray(dependents) ? dependents : [];
+
     // check if dependents data needs to be loaded
-    const loadDependents = hasDependents && Array.isArray(dependents) && dependents.length === 0 && !loadedData;
+    const loadDependents = hasDependents && initialDependents.length === 0 && !loadedData;
 
     // API call to retrieve dependents node data (if not yet loaded)
     React.useEffect(() => {
@@ -154,8 +157,8 @@ const NodesView = ({model, data}) => {
                         if (res.error) return setError(res.error);
                         const { response = {} } = res || {};
                         const { data = {} } = response || {};
-                        const { dependents = [] } = data || {};
-                        setLoadedData(dependents);
+                        const deps = Array.isArray(data?.dependents) ? data.dependents : [];
+                        setLoadedData(deps);
                     }
                 })
                 .catch(err => console.error(err), setError(true));
@@ -166,7 +169,8 @@ const NodesView = ({model, data}) => {
     }, [node, model, router, setLoadedData, loadDependents, error]);
 
     // group dependent nodes by model type
-    const dependentsGrouped = groupBy( loadedData ? loadedData || [] : dependents ? dependents : [], 'type');
+    const currentDependents = Array.isArray(loadedData) ? loadedData : initialDependents;
+    const dependentsGrouped = groupBy(currentDependents, 'type');
 
     // create tab index of metadata and files
     let _tabItems = [];
