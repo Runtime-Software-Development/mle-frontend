@@ -13,7 +13,7 @@ import {useData} from "../../providers/data.provider.client";
 import {genID, groupBy, sorter} from "../../utils/data.utils.client";
 import Carousel from "../common/carousel";
 import Comparator from "../common/comparator";
-import {getModelLabel} from "../../services/schema.services.client";
+import {getDependentTypes, getModelLabel} from "../../services/schema.services.client";
 import Accordion from "../common/accordion";
 import MetadataView from "./metadata.view";
 import Tabs from "../common/tabs";
@@ -26,6 +26,22 @@ import {MapFeaturesView} from "./maps.view";
 
 // generate unique ID value for form inputs
 const menuID = genID();
+
+const getComparisonModernCaptures = (attachedData = {}) => {
+    const comparisons = Array.isArray(attachedData?.comparisons) ? attachedData.comparisons : [];
+    const captures = comparisons
+        .map(item => item?.modern_captures)
+        .filter(Boolean);
+
+    // de-duplicate captures by node id
+    const seen = new Set();
+    return captures.filter(capture => {
+        const captureId = capture?.node?.id || capture?.id;
+        if (!captureId || seen.has(captureId)) return false;
+        seen.add(captureId);
+        return true;
+    });
+};
 
 /**
  * Link to metadata details of node and dependents
@@ -131,8 +147,9 @@ const NodesView = ({model, data}) => {
         node = {},
     } = api.destructure(data) || {};
 
-    // Locations can carry modern capture dependents even when hasDependents is omitted.
-    const canLoadDependents = hasDependents || model === 'locations';
+    // infer dependents from schema as API flags may be omitted
+    const schemaDependents = getDependentTypes(model) || getDependentTypes(`${model}s`) || [];
+    const canLoadDependents = hasDependents || (Array.isArray(schemaDependents) && schemaDependents.length > 0);
 
     // set preference tab ID
     const prefTabKey = `pref_tab_${model}_${id}`;
@@ -148,11 +165,11 @@ const NodesView = ({model, data}) => {
         _isMounted.current = true;
 
         // extract node ID
-        const { id=null } = node || {};
+        const nodeID = node?.id || id || null;
 
         // API call for page data
         if (!error && loadDependents) {
-            const route = createNodeRoute(model, 'show', id);
+            const route = createNodeRoute('nodes', 'show', nodeID);
             router.get(route)
                 .then(res => {
                     // update state with response data
@@ -161,18 +178,30 @@ const NodesView = ({model, data}) => {
                         const { response = {} } = res || {};
                         const { data = {} } = response || {};
                         const deps = Array.isArray(data?.dependents) ? data.dependents : [];
-                        setLoadedData(deps);
+                        const comparisonCaptures = getComparisonModernCaptures(data?.attached || {});
+                        const mergedDeps = deps.length > 0 || comparisonCaptures.length === 0
+                            ? deps
+                            : comparisonCaptures;
+                        setLoadedData(mergedDeps);
                     }
                 })
-                .catch(err => console.error(err), setError(true));
+                .catch(err => {
+                    console.error(err);
+                    setError(true);
+                });
         }
         return () => {
             _isMounted.current = false;
         };
-    }, [node, model, router, setLoadedData, loadDependents, error]);
+    }, [node, id, model, router, setLoadedData, loadDependents, error]);
 
     // group dependent nodes by model type
-    const currentDependents = Array.isArray(loadedData) ? loadedData : initialDependents;
+    const comparisonCaptures = getComparisonModernCaptures(attached || {});
+    const currentDependents = Array.isArray(loadedData)
+        ? loadedData
+        : initialDependents.length > 0
+            ? initialDependents
+            : comparisonCaptures;
     const normalizedDependents = currentDependents.map(item => ({
         ...(item || {}),
         type: item?.type || item?.model || item?.node?.type || item?.file?.file_type || ''

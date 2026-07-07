@@ -18,7 +18,7 @@ import React from 'react'
 import {useRouter} from '../../providers/router.provider.client';
 import {useData} from '../../providers/data.provider.client';
 import {createNodeRoute} from '../../utils/paths.utils.client';
-import {getModelLabel, getNodeOrder } from '../../services/schema.services.client';
+import {getDependentTypes, getModelLabel, getNodeOrder } from '../../services/schema.services.client';
 import Button from '../common/button';
 import {sorter} from '../../utils/data.utils.client';
 import Loading from '../common/loading';
@@ -26,6 +26,21 @@ import Accordion from "../common/accordion";
 import {useNav} from "../../providers/nav.provider.client";
 import {useWindowSize} from "../../utils/events.utils.client";
 import styles from '../styles/tree.module.css';
+
+const getComparisonModernCaptures = (attachedData = {}) => {
+    const comparisons = Array.isArray(attachedData?.comparisons) ? attachedData.comparisons : [];
+    const captures = comparisons
+        .map(item => item?.modern_captures)
+        .filter(Boolean);
+
+    const seen = new Set();
+    return captures.filter(capture => {
+        const captureId = capture?.node?.id || capture?.id;
+        if (!captureId || seen.has(captureId)) return false;
+        seen.add(captureId);
+        return true;
+    });
+};
 
 /**
  * Navigation tree node component.
@@ -44,8 +59,9 @@ const TreeNode = ({data, depth, maxdepth, callback=()=>{}}) => {
         hasDependents=false
     } = data || {};
 
-    // Locations can have modern capture children even when hasDependents is not set by API.
-    const canLoadDependents = hasDependents || type === 'locations';
+    // infer dependent capability from schema as API flags may be omitted
+    const schemaDependents = getDependentTypes(type) || getDependentTypes(`${type}s`) || [];
+    const canLoadDependents = hasDependents || (Array.isArray(schemaDependents) && schemaDependents.length > 0);
 
     // create dynamic data states
     const [toggle, setToggle] = React.useState(false);
@@ -98,14 +114,18 @@ const TreeNode = ({data, depth, maxdepth, callback=()=>{}}) => {
                         const {response = {}} = res || {};
                         let {data = {}} = response || {};
                         const dependents = Array.isArray(data?.dependents) ? data.dependents : [];
+                        const comparisonCaptures = getComparisonModernCaptures(data?.attached || {});
+                        const mergedDependents = dependents.length > 0 || comparisonCaptures.length === 0
+                            ? dependents
+                            : comparisonCaptures;
 
                         // separate sorted from unsorted captures or non-capture nodes
-                        const unsorted = dependents.filter(item => {
+                        const unsorted = mergedDependents.filter(item => {
                             const { node = {}, status = '' } = item || {};
                             const {type = ''} = node || {};
                             return ( type === 'historic_captures' || type === 'modern_captures' ) && (status === 'unsorted')
                         });
-                        const sorted = dependents.filter(item => {
+                        const sorted = mergedDependents.filter(item => {
                             const { node = {}, status = '' } = item || {};
                             const {type = ''} = node || {};
                             return ( type !== 'historic_captures' && type !== 'modern_captures' ) || status !== 'unsorted'

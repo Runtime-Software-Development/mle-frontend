@@ -18,7 +18,7 @@ import React from 'react'
 import {useRouter} from '../../providers/router.provider.client';
 import {useData} from '../../providers/data.provider.client';
 import {createNodeRoute} from '../../utils/paths.utils.client';
-import {getModelLabel, getNodeOrder, isCaptureType} from '../../services/schema.services.client';
+import {getDependentTypes, getModelLabel, getNodeOrder, isCaptureType} from '../../services/schema.services.client';
 import {addNode, checkNode, removeNode} from '../../services/session.services.client';
 import Button from '../common/button';
 import {capitalize, sorter} from '../../utils/data.utils.client';
@@ -30,6 +30,21 @@ import EditorMenu from "../menus/editor.menu";
 import {useUser} from "../../providers/user.provider.client";
 import {useDialog} from "../../providers/dialog.provider.client";
 import Image from "../common/image";
+
+const getComparisonModernCaptures = (attachedData = {}) => {
+    const comparisons = Array.isArray(attachedData?.comparisons) ? attachedData.comparisons : [];
+    const captures = comparisons
+        .map(item => item?.modern_captures)
+        .filter(Boolean);
+
+    const seen = new Set();
+    return captures.filter(capture => {
+        const captureId = capture?.node?.id || capture?.id;
+        if (!captureId || seen.has(captureId)) return false;
+        seen.add(captureId);
+        return true;
+    });
+};
 
 /**
  * Navigation tree node component.
@@ -54,8 +69,9 @@ const TreeNode = ({data}) => {
         url=null
     } = data || {};
 
-    // Locations can have modern capture children even when hasDependents is not set by API.
-    const canLoadDependents = hasDependents || type === 'locations';
+    // infer dependent capability from schema as API flags may be omitted
+    const schemaDependents = getDependentTypes(type) || getDependentTypes(`${type}s`) || [];
+    const canLoadDependents = hasDependents || (Array.isArray(schemaDependents) && schemaDependents.length > 0);
 
     // create dynamic data states
     const [toggle, setToggle] = React.useState(checkNode(id));
@@ -227,14 +243,18 @@ const TreeNode = ({data}) => {
                         const {response = {}} = res || {};
                         let {data = {}} = response || {};
                         const dependents = Array.isArray(data?.dependents) ? data.dependents : [];
+                        const comparisonCaptures = getComparisonModernCaptures(data?.attached || {});
+                        const mergedDependents = dependents.length > 0 || comparisonCaptures.length === 0
+                            ? dependents
+                            : comparisonCaptures;
 
                         // separate sorted from unsorted captures or non-capture nodes
-                        const unsorted = dependents.filter(item => {
+                        const unsorted = mergedDependents.filter(item => {
                             const { node = {}, status = '' } = item || {};
                             const {type = ''} = node || {};
                             return ( type === 'historic_captures' || type === 'modern_captures' ) && (status === 'unsorted')
                         });
-                        const sorted = dependents.filter(item => {
+                        const sorted = mergedDependents.filter(item => {
                             const { node = {}, status = '' } = item || {};
                             const {type = ''} = node || {};
                             return ( type !== 'historic_captures' && type !== 'modern_captures' ) || status !== 'unsorted'

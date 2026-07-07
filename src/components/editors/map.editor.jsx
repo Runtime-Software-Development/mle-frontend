@@ -222,7 +222,7 @@ export const MapEditor = ({ id }) => {
             value={selectedFile}
             type={'select'}
             options={fileList}
-            label={'KMZ Metadata File'}
+            label={'Select a KMZ Metadata File'}
             onChange={_handleChange}
         />
         {
