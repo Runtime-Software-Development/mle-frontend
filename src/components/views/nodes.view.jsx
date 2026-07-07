@@ -389,6 +389,10 @@ const NodesView = ({model, data}) => {
             />
     });
 
+    // Show loading only while an async dependent fetch is actually in-flight.
+    // If the fetch returns no dependents, fall back to details instead of spinning forever.
+    const isLoadingDependents = hasDependents && loadDependents && loadedData === null && !error;
+
     // if dependents exist, show dependent data in tab, otherwise show metadata details
     // - single dependent shown as simple node view
     // - multiple dependents shown in secondary tab view
@@ -397,7 +401,24 @@ const NodesView = ({model, data}) => {
             hasDependents
             ? _tabItems.length > 0
                 ? <Tabs prefKey={prefTabKey} className={'nodes'} items={_tabItems} orientation={'horizontal'}/>
-                : <Loading/>
+                : isLoadingDependents
+                    ? <Loading/>
+                    : <>
+                        {attachedMapIds.map(mapId => (
+                            <MapFeaturesView
+                                key={`map_features_${mapId}`}
+                                map_features_id={mapId}
+                            />
+                        ))}
+                        <MetadataView
+                            key={prefTabKey}
+                            metadata={metadata}
+                            model={model}
+                            node={node}
+                            attached={attached}
+                            files={files}
+                        />
+                      </>
             : <>
                 {attachedMapIds.map(mapId => (
                     <MapFeaturesView
