@@ -131,6 +131,9 @@ const NodesView = ({model, data}) => {
         node = {},
     } = api.destructure(data) || {};
 
+    // Locations can carry modern capture dependents even when hasDependents is omitted.
+    const canLoadDependents = hasDependents || model === 'locations';
+
     // set preference tab ID
     const prefTabKey = `pref_tab_${model}_${id}`;
 
@@ -138,7 +141,7 @@ const NodesView = ({model, data}) => {
     const initialDependents = Array.isArray(dependents) ? dependents : [];
 
     // check if dependents data needs to be loaded
-    const loadDependents = hasDependents && initialDependents.length === 0 && !loadedData;
+    const loadDependents = canLoadDependents && initialDependents.length === 0 && !loadedData;
 
     // API call to retrieve dependents node data (if not yet loaded)
     React.useEffect(() => {
@@ -170,7 +173,11 @@ const NodesView = ({model, data}) => {
 
     // group dependent nodes by model type
     const currentDependents = Array.isArray(loadedData) ? loadedData : initialDependents;
-    const dependentsGrouped = groupBy(currentDependents, 'type');
+    const normalizedDependents = currentDependents.map(item => ({
+        ...(item || {}),
+        type: item?.type || item?.model || item?.node?.type || item?.file?.file_type || ''
+    }));
+    const dependentsGrouped = groupBy(normalizedDependents, 'type');
 
     // create tab index of metadata and files
     let _tabItems = [];
@@ -395,14 +402,14 @@ const NodesView = ({model, data}) => {
 
     // Show loading only while an async dependent fetch is actually in-flight.
     // If the fetch returns no dependents, fall back to details instead of spinning forever.
-    const isLoadingDependents = hasDependents && loadDependents && loadedData === null && !error;
+    const isLoadingDependents = canLoadDependents && loadDependents && loadedData === null && !error;
 
     // if dependents exist, show dependent data in tab, otherwise show metadata details
     // - single dependent shown as simple node view
     // - multiple dependents shown in secondary tab view
     return <>
         {
-            hasDependents
+            canLoadDependents
             ? _tabItems.length > 0
                 ? <Tabs prefKey={prefTabKey} className={'nodes'} items={_tabItems} orientation={'horizontal'}/>
                 : isLoadingDependents

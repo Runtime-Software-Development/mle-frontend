@@ -54,6 +54,9 @@ const TreeNode = ({data}) => {
         url=null
     } = data || {};
 
+    // Locations can have modern capture children even when hasDependents is not set by API.
+    const canLoadDependents = hasDependents || type === 'locations';
+
     // create dynamic data states
     const [toggle, setToggle] = React.useState(checkNode(id));
     const [isCurrent, setCurrent] = React.useState(false);
@@ -184,7 +187,7 @@ const TreeNode = ({data}) => {
     // toggle button classnames
     const classnames = [
         'tree-node',
-        hasDependents ? 'toggle' : 'leaf',
+        canLoadDependents ? 'toggle' : 'leaf',
         toggle || checkNode(id) ? 'active' : '',
         isCurrent ? 'current' : ''
     ];
@@ -211,7 +214,7 @@ const TreeNode = ({data}) => {
         _isMounted.current = true;
 
         // load tree node data
-        if (!error && hasDependents && toggle && !loadedData) {
+        if (!error && canLoadDependents && toggle && !loadedData) {
             const route = createNodeRoute('nodes', 'show', id);
             router.get(route)
                 .then(res => {
@@ -254,7 +257,7 @@ const TreeNode = ({data}) => {
         api,
         router,
         id,
-        hasDependents,
+        canLoadDependents,
         toggle,
         treeNode,
         loadedData,
@@ -293,10 +296,10 @@ const TreeNode = ({data}) => {
                             </li>
                             : <li>
                                 <Button
-                                    icon={hasDependents ? (toggle ? 'collapse' : 'expand') : 'empty'}
+                                    icon={canLoadDependents ? (toggle ? 'collapse' : 'expand') : 'empty'}
                                     className={classnames.join(' ')}
                                     title={`Expand ${label}.`}
-                                    onClick={hasDependents ? _handleToggle : () => {}}
+                                    onClick={canLoadDependents ? _handleToggle : () => {}}
                                 />
                             </li>
                     }
@@ -357,7 +360,7 @@ const TreeNode = ({data}) => {
             </div>
             {
                 // toggle dependent nodes list
-                toggle && hasDependents
+                toggle && canLoadDependents
                     ? error
                         ? <Button className={'msg error'} label={'An error occurred'} icon={'error'}/>
                         : loadedData
@@ -411,7 +414,10 @@ const TreeNodeList = ({items}) => {
                             refImage={},
                             attached={}
                         } = item || {};
-                        const { id = '', type = '', owner_id='', owner_type=''} = node || {};
+                        const id = node?.id || item?.id || item?.nodes_id || file?.id || '';
+                        const type = node?.type || item?.type || item?.model || file?.file_type || '';
+                        const owner_id = node?.owner_id || item?.owner_id || '';
+                        const owner_type = node?.owner_type || item?.owner_type || '';
                         const { file_size=0, mimetype='', filename='' } = file || {};
                         const { url='' } = refImage || {};
                         let itemMetadata = metadata || {};
@@ -423,9 +429,9 @@ const TreeNodeList = ({items}) => {
                             type: type,
                             id: id,
                             label: label,
-                            node: node,
+                            node: Object.keys(node || {}).length > 0 ? node : {id, type, owner_id, owner_type},
                             order: getNodeOrder(type || '') || 0,
-                            hasDependents: hasDependents,
+                            hasDependents: hasDependents || item?.has_dependents || false,
                             status: status,
                             metadata: itemMetadata,
                             url: url,

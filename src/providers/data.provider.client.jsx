@@ -80,14 +80,28 @@ function DataProvider(props) {
             refImage = {},
             hasDependents = false,
         } = dataObj || {};
-        const type = node.type || file.file_type || '';
-        const id = node.id || file.id || '';
+        const fallbackType = dataObj?.type || dataObj?.model || '';
+        const fallbackId = dataObj?.id || dataObj?.nodes_id || '';
+        const type = node.type || file.file_type || fallbackType;
+        const id = node.id || file.id || fallbackId;
+
+        const nodeData = Object.keys(node || {}).length > 0
+            ? node
+            : {
+                id: id,
+                type: type,
+                owner_id: dataObj?.owner_id || '',
+                owner_type: dataObj?.owner_type || ''
+            };
 
         // get current owner
-        const {owner_id = '', owner_type = ''} = node || {};
+        const {owner_id = '', owner_type = ''} = nodeData || {};
         const ownerData = owner_type && owner_id
             ? {id: owner_id, type: owner_type}
             : owner;
+
+        const dependentsData = Array.isArray(dependents) ? dependents : [];
+        const hasDependentsData = hasDependents || dependentsData.length > 0;
 
         // check if label is empty, if so, use root node label
         const labelAlt = label ? label : getRootNode(path).label;
@@ -113,15 +127,15 @@ function DataProvider(props) {
             label: labelAlt,
             metadata: metadata,
             location: location,
-            node: node,
+            node: nodeData,
             file: file,
             files: files,
             refImage: refImage,
-            dependents: dependents,
+            dependents: dependentsData,
             attached: attached,
             owner: ownerData,
             status: status,
-            hasDependents: hasDependents
+            hasDependents: hasDependentsData
         }
     }
 
