@@ -10,7 +10,7 @@ import React from "react";
 import { genID } from '../../utils/data.utils.client';
 import { getModelLabel } from '../../services/schema.services.client';
 import Accordion from '../common/accordion';
-import PaginationMenu from '../menus/pagination.menu';
+import Button from '../common/button';
 import { useRouter } from '../../providers/router.provider.client';
 import NodesView from "../views/nodes.view";
 
@@ -43,6 +43,7 @@ const PaginationTools = ({data}) => {
         results,
         count
     });
+    const [loading, setLoading] = React.useState(false);
 
     React.useEffect(() => {
         setPageData({
@@ -52,14 +53,24 @@ const PaginationTools = ({data}) => {
             results,
             count
         });
+        setLoading(false);
     }, [query, offset, limit, results, count]);
 
-    const fetchPage = (updatedOffset) => {
+    const fetchMore = () => {
+
+        if (loading) return;
+
+        const nextOffset = pageData.offset + pageData.results.length;
+
+        if (nextOffset >= pageData.count) return;
+
         const params = {
             ids: pageData.query,
-            offset: updatedOffset,
+            offset: nextOffset,
             limit: pageData.limit
         };
+
+        setLoading(true);
 
         router.post('/filter', params, true)
             .then(res => {
@@ -67,25 +78,13 @@ const PaginationTools = ({data}) => {
                 const responseData = res?.response?.data || {};
                 setPageData(prev => ({
                     ...prev,
-                    offset: updatedOffset,
-                    results: responseData?.results || [],
+                    results: [...prev.results, ...(responseData?.results || [])],
                     count: responseData?.count ?? prev.count
                 }));
             })
-            .catch(err => console.error(err));
+            .catch(err => console.error(err))
+            .finally(() => setLoading(false));
     };
-
-    // handle previous page request
-    const onPrev = () => {
-        const updatedOffset = Math.max(pageData.offset - pageData.limit, 0);
-        fetchPage(updatedOffset);
-    }
-
-    // handle next page request
-    const onNext = () => {
-        const updatedOffset = pageData.offset + pageData.limit;
-        fetchPage(updatedOffset);
-    }
 
     // prepare item data for list
     // - set render option for each item data field
@@ -109,18 +108,10 @@ const PaginationTools = ({data}) => {
         });
     }
 
-    const hasNext = pageData.count > (pageData.offset + pageData.limit);
-    const hasPrev = pageData.offset > 0;
+    const hasMore = pageData.count > (pageData.offset + pageData.results.length);
 
     return <>
         <h4>{ pageData.results.length > 0 &&`Results found: ${pageData.count}` }</h4>
-        <PaginationMenu
-            total={pageData.count}
-            hasPrev={hasPrev}
-            hasNext={hasNext}
-            onPrev={onPrev}
-            onNext={onNext}
-        />
         {
             pageData.count > 0
             ? <ol className={'items'} start={pageData.offset + 1}>
@@ -130,13 +121,17 @@ const PaginationTools = ({data}) => {
             </ol>
             : <p>No Results.</p>
         }
-        <PaginationMenu
-            total={pageData.count}
-            hasPrev={hasPrev}
-            hasNext={hasNext}
-            onPrev={onPrev}
-            onNext={onNext}
-        />
+        {
+            hasMore &&
+            <div className={'centred dialog-load-more-wrap'}>
+                <Button
+                    className={'load-more-prominent'}
+                    label={loading ? 'Loading...' : 'Load More'}
+                    disabled={loading}
+                    onClick={fetchMore}
+                />
+            </div>
+        }
     </>
 }
 

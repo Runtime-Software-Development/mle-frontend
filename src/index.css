@@ -1581,6 +1581,64 @@ Linked Nodes tags
     color: #FFFFFF;
 }
 
+.h-menu.linked-nodes.map-scope-menu {
+    margin: 8px 0 10px 0;
+    padding: 12px;
+    border: 1px solid #3b4452;
+    border-radius: 8px;
+    background: #282c34;
+}
+
+.h-menu.linked-nodes.map-scope-menu ul {
+    gap: 10px;
+}
+
+.h-menu.linked-nodes.map-scope-menu ul li {
+    margin: 0;
+    flex: 1 1 220px;
+}
+
+.h-menu.linked-nodes.map-scope-menu ul li button.map-scope-button {
+    width: 100%;
+    margin: 0;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    border: 1px solid #3b4452;
+    box-shadow: none;
+}
+
+.h-menu.linked-nodes.map-scope-menu ul li button.map-scope-button:hover {
+    opacity: 1;
+    transform: none;
+    box-shadow: none;
+}
+
+.h-menu.linked-nodes.map-scope-menu ul li button.map-scope-button:focus {
+    outline: 2px solid #2ea591;
+    outline-offset: 1px;
+}
+
+.map-scope-note {
+    margin: 6px 0 14px 0;
+    color: #b7c3cf;
+    font-size: 0.94rem;
+}
+
+@media only screen and (max-width: 700px) {
+    .h-menu.linked-nodes.map-scope-menu {
+        padding: 10px;
+    }
+
+    .h-menu.linked-nodes.map-scope-menu ul {
+        gap: 8px;
+    }
+
+    .h-menu.linked-nodes.map-scope-menu ul li {
+        flex: 1 1 100%;
+    }
+}
+
 /* Participants */
 /*.participants h5 {*/
 /*    margin: 20px;*/

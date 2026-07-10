@@ -78,12 +78,18 @@ const Comparator = ({
     expandable = true
 }) => {
 
+    const safeImages = (Array.isArray(images) ? images : []).filter(pair => {
+        const historicRef = pair?.historic_captures?.refImage;
+        const modernRef = pair?.modern_captures?.refImage;
+        return Boolean(historicRef && modernRef);
+    });
+
     // slide panel reference
     const slidePanel = React.useRef();
     // selected slide state
     const [selectedIndex, setSelectedIndex] = React.useState(0);
     // const [expandImage, setExpandImage] = React.useState(false);
-    let selectedPair = images[selectedIndex];
+    let selectedPair = safeImages[selectedIndex] || {};
 
     // retrieve captures from pair
     const { historic_captures = {}, modern_captures = {} } = selectedPair || {};
@@ -108,32 +114,32 @@ const Comparator = ({
 
     // select image pair
     React.useEffect(() => {
-        const timer = autoslide ? setTimeout(() => {
-            setSelectedIndex((selectedIndex + 1) % images.length);
+        const timer = (autoslide && safeImages.length > 0) ? setTimeout(() => {
+            setSelectedIndex((selectedIndex + 1) % safeImages.length);
         }, autoslide) : null;
         return () => {
             clearTimeout(timer);
         };
-    }, [selectedIndex]);
+    }, [selectedIndex, autoslide, safeImages.length]);
 
     // auto-increment slideshow
     React.useEffect(() => {
-        const timer = autoslide ? setTimeout(() => {
-            setSelectedIndex((selectedIndex + 1) % images.length);
+        const timer = (autoslide && safeImages.length > 0) ? setTimeout(() => {
+            setSelectedIndex((selectedIndex + 1) % safeImages.length);
         }, autoslide) : null;
         return () => {
             clearTimeout(timer);
         };
-    }, [selectedIndex, images.length, setSelectedIndex, autoslide]);
+    }, [selectedIndex, safeImages.length, setSelectedIndex, autoslide]);
 
 
     // increment/decrement index to make slide visible
     const prevPair = () => {
-        const prevIndex = (selectedIndex - 1 + images.length) % images.length;
+        const prevIndex = (selectedIndex - 1 + safeImages.length) % safeImages.length;
         setSelectedIndex(prevIndex);
     };
     const nextPair = () => {
-        const nextIndex = (selectedIndex + 1) % images.length
+        const nextIndex = (selectedIndex + 1) % safeImages.length
         setSelectedIndex(nextIndex);
     };
 
@@ -141,12 +147,12 @@ const Comparator = ({
         <div className="comparator">
             <div ref={slidePanel} className={'slides'}>
                 {
-                    images.length > 0 ?
+                    safeImages.length > 0 ?
                         <Slider images={[historic_captures.refImage, modern_captures.refImage]} />
                         :
                         <Loading />
                 }
-                <div className={'numbertext'}>{selectedIndex + 1}/{images.length}</div>
+                <div className={'numbertext'}>{safeImages.length > 0 ? selectedIndex + 1 : 0}/{safeImages.length}</div>
                 {/* {
                     expandable &&
                     <div className={'expand-image'}><Button icon={'enlarge'} onClick={() => {
@@ -187,7 +193,7 @@ const Comparator = ({
             <div className={'thumbnails comparisons h-menu'}>
                 <ul>
                     {
-                        (images || []).map((imgPair, index) => {
+                        safeImages.map((imgPair, index) => {
                             const { historic_captures = {}, modern_captures = {} } = imgPair || {};
                             return (
                                 <li

@@ -276,6 +276,56 @@ const mapHelp = (gotoPage) => {
             the <Icon type={'map_features'} /> Features button. Here you can select to display all or some of the available map features.
             Use the <Icon type={'filter'} /> filter inputs at the top of the dialog to filter by name or by map feature group. Click the submit button
             at the bottom.</p>
+
+        <h5>Quick Setup: Project Boundary from KMZ</h5>
+        <p>Use this condensed workflow to create and display a project boundary in the Map navigator.</p>
+        <ol className={'list'}>
+            <li>Create or open the target Project.</li>
+            <li>Add a new Map Feature Group and set the type to Boundaries.</li>
+            <li>Upload the boundary KMZ as a metadata file with type Geographic Map Data.</li>
+            <li>Run Extract Map Features from the uploaded file and save the generated feature(s).</li>
+            <li>Link the extracted Map Boundary/Feature to the Project.</li>
+            <li>Open View on Map from the Project details to verify the boundary and stations in boundary.</li>
+            <li>In the Map navigator, enable Features (and optionally Stations/Cluster) to confirm the boundary overlay displays.</li>
+        </ol>
+
+        <h5>Editing Map Popup Text</h5>
+        <p>Popup text on boundary and map features is built from linked node data. Update the source fields below, then refresh the map view.</p>
+        <table className={'help'}>
+            <tbody>
+            <tr>
+                <th>Popup Area</th>
+                <th>Source Node</th>
+                <th>Fields to Edit</th>
+            </tr>
+            <tr>
+                <th>Default popup title</th>
+                <td>Map Boundary/Feature</td>
+                <td>Name</td>
+            </tr>
+            <tr>
+                <th>Feature subtitle/details</th>
+                <td>Map Boundary/Feature</td>
+                <td>Map Feature Type and Description</td>
+            </tr>
+            <tr>
+                <th>Project-style popup title</th>
+                <td>Project (when linked as dependent)</td>
+                <td>Project Name</td>
+            </tr>
+            <tr>
+                <th>Survey Season popup title</th>
+                <td>Survey Season (when linked as dependent)</td>
+                <td>Survey Season label/year</td>
+            </tr>
+            <tr>
+                <th>Survey and Lead lines</th>
+                <td>Survey Season relations</td>
+                <td>Linked Survey and Surveyor names</td>
+            </tr>
+            </tbody>
+        </table>
+        <p>If popup text is not updating, confirm the feature is linked to the expected Project or Survey Season and reload the Map navigator view.</p>
     </>
 
 

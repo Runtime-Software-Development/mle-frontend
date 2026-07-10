@@ -130,6 +130,7 @@ const NodesView = ({model, data}) => {
 
     // create dynamic data states
     const [loadedData, setLoadedData] = React.useState(null);
+    const [loadedAttached, setLoadedAttached] = React.useState(null);
     const [error, setError] = React.useState(null);
     const _isMounted = React.useRef(true);
 
@@ -147,8 +148,13 @@ const NodesView = ({model, data}) => {
         node = {},
     } = api.destructure(data) || {};
 
+    const effectiveAttached = loadedAttached || attached || {};
+    const resolvedModel = model || node?.type || '';
+    const normalizedModel = String(resolvedModel || '').toLowerCase();
+    const isStationModel = normalizedModel === 'stations' || normalizedModel === 'station';
+
     // infer dependents from schema as API flags may be omitted
-    const schemaDependents = getDependentTypes(model) || getDependentTypes(`${model}s`) || [];
+    const schemaDependents = getDependentTypes(resolvedModel) || getDependentTypes(`${resolvedModel}s`) || [];
     const canLoadDependents = hasDependents || (Array.isArray(schemaDependents) && schemaDependents.length > 0);
 
     // set preference tab ID
@@ -156,9 +162,15 @@ const NodesView = ({model, data}) => {
 
     // normalize dependent payloads (API may return null while marking hasDependents=true)
     const initialDependents = Array.isArray(dependents) ? dependents : [];
+    const hasInitialComparisons = isStationModel
+        && attached.hasOwnProperty('comparisons')
+        && Object.keys(attached.comparisons || {}).length > 0;
+    const needsStationComparisons = isStationModel && !hasInitialComparisons;
 
     // check if dependents data needs to be loaded
-    const loadDependents = canLoadDependents && initialDependents.length === 0 && !loadedData;
+    const loadDependents = (canLoadDependents || isStationModel)
+        && (initialDependents.length === 0 || needsStationComparisons)
+        && !loadedData;
 
     // API call to retrieve dependents node data (if not yet loaded)
     React.useEffect(() => {
@@ -169,12 +181,14 @@ const NodesView = ({model, data}) => {
 
         // API call for page data
         if (!error && loadDependents) {
-            const route = createNodeRoute('nodes', 'show', nodeID);
-            router.get(route)
+            const primaryRoute = createNodeRoute(resolvedModel || 'nodes', 'show', nodeID);
+            const fallbackRoute = createNodeRoute('nodes', 'show', nodeID);
+
+            const fetchNodeData = (route) => router.get(route)
                 .then(res => {
                     // update state with response data
                     if (_isMounted.current) {
-                        if (res.error) return setError(res.error);
+                        if (res.error) throw new Error(res.error);
                         const { response = {} } = res || {};
                         const { data = {} } = response || {};
                         const deps = Array.isArray(data?.dependents) ? data.dependents : [];
@@ -182,8 +196,17 @@ const NodesView = ({model, data}) => {
                         const mergedDeps = deps.length > 0 || comparisonCaptures.length === 0
                             ? deps
                             : comparisonCaptures;
+                        setLoadedAttached(data?.attached || null);
                         setLoadedData(mergedDeps);
                     }
+                });
+
+            fetchNodeData(primaryRoute)
+                .catch(fetchError => {
+                    if ((primaryRoute !== fallbackRoute) && _isMounted.current) {
+                        return fetchNodeData(fallbackRoute);
+                    }
+                    throw fetchError;
                 })
                 .catch(err => {
                     console.error(err);
@@ -196,7 +219,7 @@ const NodesView = ({model, data}) => {
     }, [node, id, model, router, setLoadedData, loadDependents, error]);
 
     // group dependent nodes by model type
-    const comparisonCaptures = getComparisonModernCaptures(attached || {});
+    const comparisonCaptures = getComparisonModernCaptures(effectiveAttached || {});
     const currentDependents = Array.isArray(loadedData)
         ? loadedData
         : initialDependents.length > 0
@@ -294,14 +317,18 @@ const NodesView = ({model, data}) => {
 
     // include comparisons metadata if:
     // - comparisons exist
-    // - not at station node level
+    // - for station-level views
+    const comparisonImages = effectiveAttached?.comparisons || [];
+    const hasComparisons = Array.isArray(comparisonImages)
+        ? comparisonImages.length > 0
+        : Object.keys(comparisonImages || {}).length > 0;
+
     if (
-        model === 'stations'
-        && attached.hasOwnProperty('comparisons')
-        && Object.keys(attached.comparisons).length > 0
+        isStationModel
+        && hasComparisons
     ) _tabItems.push({
         label: 'Comparisons',
-        data: <Comparator images={attached.comparisons} />,
+        data: <Comparator images={comparisonImages} />,
     });
 
     // add tab for any unsorted captures

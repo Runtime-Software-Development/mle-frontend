@@ -318,6 +318,14 @@ const Slider = ({ images = [] }) => {
 
     const _load = () => {
 
+        // Guard against transient unmounted refs (e.g. rapid view switches/dialog teardown).
+        if (!imageLayer1.current || !imageLayer2.current) {
+            return;
+        }
+
+        const img1 = imageLayer1.current;
+        const img2 = imageLayer2.current;
+
         // status = image loading has started
         setStatus1('loading');
         setStatus2('loading');
@@ -330,31 +338,35 @@ const Slider = ({ images = [] }) => {
         const url1 = image1 && image1.hasOwnProperty('url') ? image1.url.medium : image1;
         const url2 = image2 && image2.hasOwnProperty('url') ? image2.url.medium : image2;
         // set view image sources
-        imageLayer1.current.src = url1;
-        imageLayer2.current.src = url2;
+        img1.src = url1;
+        img2.src = url2;
 
         // load image 1
-        imageLayer1.current.onload = function () {
+        img1.onload = function () {
             // load image data to canvas layer
             _drawImage1();
             // update load status
             setStatus1('loaded');
         };
-        imageLayer1.current.onerror = () => {
+        img1.onerror = () => {
             setMessage({ msg: 'Error: Image could not be loaded.', type: 'error' });
-            imageLayer1.current.src = schema.errors.image.fallbackSrc;
+            // Avoid touching React refs in async handlers after unmount.
+            img1.onerror = null;
+            img1.src = schema.errors.image.fallbackSrc;
         };
         
         // load image 2
-        imageLayer2.current.onload = function () {
+        img2.onload = function () {
             // load image data to canvas layer
             _drawImage2();
             // update load status
             setStatus2('loaded');
         };
-        imageLayer2.current.onerror = () => {
+        img2.onerror = () => {
             setMessage({ msg: 'Error: Image could not be loaded.', type: 'error' });
-            imageLayer2.current.src = schema.errors.image.fallbackSrc;
+            // Avoid touching React refs in async handlers after unmount.
+            img2.onerror = null;
+            img2.src = schema.errors.image.fallbackSrc;
         };
 
     }

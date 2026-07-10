@@ -25,7 +25,6 @@ import EditorMenu from "../menus/editor.menu";
 import NodesView from "./nodes.view";
 import { getModelLabel } from "../../services/schema.services.client";
 import {setNavView} from "../../services/session.services.client";
-import PaginationMenu from "../menus/pagination.menu";
 
 const FILTER_PAGE_SIZE = 25;
 
@@ -44,9 +43,10 @@ export const MapFeaturesView = ({ map_features_id }) => {
     const nav = useNav();
     const router = useRouter();
     const [stationData, setStationData] = useState([]);
-    const [stations, setStations] = useState([]);
     const [count, setCount] = useState(0);
-    const [pageOffset, setPageOffset] = useState(0);
+    const [loadedCount, setLoadedCount] = useState(0);
+    const [hasMore, setHasMore] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     // Sets the current navigation mode (tree/map/search/etc.)
@@ -61,23 +61,32 @@ export const MapFeaturesView = ({ map_features_id }) => {
         setNavView('map');
     }
 
-    const stationIds = useMemo(() => {
-        return [...stations]
+    const boundaryStationIds = useMemo(() => {
+        const allStations = Array.isArray(nav.map) ? nav.map : [];
+        const boundaryStations = filterStationsByBoundary(allStations, nav.overlay) || [];
+
+        return [...boundaryStations]
             .sort((a, b) => (a?.name || '').localeCompare(b?.name || ''))
             .map(station => station?.nodes_id)
             .filter(Boolean);
-    }, [stations]);
 
-    // API call to retrieve station data (paginated)
-    useEffect(() => {
+    }, [nav.map, nav.overlay]);
 
-        if (stationIds.length === 0) {
-            setStationData([]);
-            setCount(0);
+    const loadStationPage = (offset = 0, append = false, idsOverride = null) => {
+
+        const ids = idsOverride || boundaryStationIds;
+
+        if (append && loading) return;
+
+        const pagedIds = ids.slice(offset, offset + FILTER_PAGE_SIZE);
+
+        if (pagedIds.length === 0) {
+            setHasMore(false);
             return;
         }
 
-        const pagedIds = stationIds.slice(pageOffset, pageOffset + FILTER_PAGE_SIZE);
+        setLoading(true);
+        setError(null);
 
         const params = {
             ids: pagedIds,
@@ -85,42 +94,48 @@ export const MapFeaturesView = ({ map_features_id }) => {
             limit: FILTER_PAGE_SIZE
         }
 
-        // fetch station data
+        // Fetch station data in chunks and append for lazy loading.
         router.post('/filter', params, true)
             .then(res => {
                 if (res?.error) return setError(res.error);
-                const data = res?.response?.data || {};
-                setStationData(data?.results || []);
-                setCount(stationIds.length);
-            })
-            .catch(err => console.error(err));
 
-    }, [stationIds, pageOffset]);
+                const data = res?.response?.data || {};
+                const results = data?.results || [];
+                const nextLoadedCount = offset + pagedIds.length;
+
+                setStationData(prev => append ? [...prev, ...results] : results);
+                setLoadedCount(nextLoadedCount);
+                setCount(ids.length);
+                setHasMore(nextLoadedCount < ids.length);
+            })
+            .catch(err => console.error(err))
+            .finally(() => setLoading(false));
+    };
+
+    // Reset and load boundary-filtered station data whenever map or overlay state changes.
+    useEffect(() => {
+
+        const ids = boundaryStationIds;
+
+        setStationData([]);
+        setCount(ids.length);
+        setLoadedCount(0);
+        setHasMore(false);
+        setLoading(false);
+        setError(null);
+
+        if (ids.length === 0) {
+            return;
+        }
+
+        loadStationPage(0, false, ids);
+
+    }, [boundaryStationIds]);
 
     useEffect(() => {
         if (!map_features_id) return;
         nav.addToOverlay([map_features_id]);
-        setPageOffset(0);
-        setStations(filterStationsByBoundary(nav.map, nav.overlay) || []);
     }, []);
-
-    useEffect(() => {
-        setPageOffset(0);
-        setStations(filterStationsByBoundary(nav.map, nav.overlay) || []);
-    }, [nav.overlay]);
-
-    const hasNext = count > (pageOffset + FILTER_PAGE_SIZE);
-    const hasPrev = pageOffset > 0;
-
-    const onPrev = () => {
-        setPageOffset(Math.max(0, pageOffset - FILTER_PAGE_SIZE));
-    };
-
-    const onNext = () => {
-        if (hasNext) {
-            setPageOffset(pageOffset + FILTER_PAGE_SIZE);
-        }
-    };
 
     // prepare item data for list
     // - set render option for each item data field
@@ -144,35 +159,53 @@ export const MapFeaturesView = ({ map_features_id }) => {
     }
 
     return <>
-        <Button
-            icon={'map'}
-            className={'submit'}
-            name={'map_view'}
-            label={'View on Map Tool'}
-            title={'View on Map Tool'}
-            onClick={() => _viewInMap()}
-        />
+        <div className={'h-menu linked-nodes map-scope-menu'}>
+            <ul>
+                <li>
+                    <Button
+                        icon={'map'}
+                        className={`${nav.boundaryFilterActive ? 'submit' : 'cancel'} map-scope-button`}
+                        label={'Map: Filtered Stations'}
+                        title={'Open Map Navigator with stations filtered to the selected boundary.'}
+                        onClick={() => {
+                            nav.setBoundaryFilterActive(true);
+                            _viewInMap();
+                        }}
+                    />
+                </li>
+                <li>
+                    <Button
+                        icon={'stations'}
+                        className={`${!nav.boundaryFilterActive ? 'submit' : 'cancel'} map-scope-button`}
+                        label={'Map: Unfiltered Stations'}
+                        title={'Open Map Navigator with all stations (no boundary filter).'}
+                        onClick={() => {
+                            nav.setBoundaryFilterActive(false);
+                            _viewInMap();
+                        }}
+                    />
+                </li>
+            </ul>
+        </div>
+        <p className={'map-scope-note'}>Click either button to open the Map Navigator. Use Filtered to show boundary-filtered stations, or Unfiltered to show all stations.</p>
         {stationData.length > 0 ? (
             <div>
                 <h4>Stations within Map Boundary: {count}</h4>
-                <PaginationMenu
-                    total={count}
-                    hasPrev={hasPrev}
-                    hasNext={hasNext}
-                    onPrev={onPrev}
-                    onNext={onNext}
-                />
                     {loadData()}
-                <PaginationMenu
-                    total={count}
-                    hasPrev={hasPrev}
-                    hasNext={hasNext}
-                    onPrev={onPrev}
-                    onNext={onNext}
-                />
+                {
+                    hasMore &&
+                    <div className={'centred dialog-load-more-wrap'}>
+                        <Button
+                            className={'load-more-prominent'}
+                            label={loading ? 'Loading...' : 'Load More'}
+                            disabled={loading}
+                            onClick={() => loadStationPage(loadedCount, true)}
+                        />
+                    </div>
+                }
             </div>
         ) : (
-            <p>Loading stations found within this map feature...</p>
+            <p>{error || (loading ? 'Loading stations found within this map feature...' : 'No stations found within this boundary.')}</p>
         )}
     </>
 

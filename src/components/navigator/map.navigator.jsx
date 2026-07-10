@@ -73,11 +73,11 @@ function MapNavigator({ filter, hidden }) {
 
     // let mapContainer = React.createRef();
     const mapID = 'map-container';
-    const isBoundaryFilterActive = true;
     const router = useRouter();
     const api = useData();
     const nav = useNav();
     const dialog = useDialog();
+    const isBoundaryFilterActive = nav.boundaryFilterActive !== false;
 
     // mounted component flag
     const _isMounted = React.useRef(false);

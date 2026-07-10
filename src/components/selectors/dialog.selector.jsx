@@ -130,22 +130,25 @@ const DialogSelector = () => {
                 callback={_handleDialogClose}
             >
                 {
-                    items.map((item, itemIndex) => (
-                        <Accordion
+                    items.map((item, itemIndex) => {
+                        const itemModel = item?.node?.type || item?.type || model;
+                        const itemId = item?.node?.id || item?.id;
+
+                        return <Accordion
                             key={`dialog_item_${itemIndex}`}
-                            type={item?.type}
-                            id={item?.id}
-                            label={`${getModelLabel(item?.type)}: ${item?.label || ''}`}
+                            type={itemModel}
+                            id={itemId}
+                            label={`${getModelLabel(itemModel)}: ${item?.label || ''}`}
                             menu={<EditorMenu 
-                                    model={item?.node?.type} 
-                                    id={item?.node?.id} 
+                                    model={itemModel} 
+                                    id={itemId} 
                                     visible={['redirect']}
                                 />}
                             open={itemIndex === 0}
                         >
-                            <NodesView model={item.type} data={item} />
+                            <NodesView model={itemModel} data={item} />
                         </Accordion>
-                    ))
+                    })
                 }
                 {
                     hasMore &&

@@ -57,6 +57,7 @@ function NavProvider(props) {
     const [selectedNode, setSelectedNode] = React.useState({});
     const [scrollToView, setScrollToView] = React.useState(false);
     const [compact, setCompact] = React.useState(false);
+    const [boundaryFilterActive, setBoundaryFilterActive] = React.useState(true);
 
     // IAT data states
     const [iatSettings, setIATSettings] = React.useState(null);
@@ -291,6 +292,8 @@ function NavProvider(props) {
                 setResize: setResize,
                 compact,
                 setCompact,
+                boundaryFilterActive,
+                setBoundaryFilterActive,
                 downloads: downloadData,
                 addDownload: _toggleAttachedDownload,
                 checkDownload: _checkAttachedDownload,
