@@ -106,7 +106,7 @@ const ViewerPanelMenu = () => {
                     <Button
                         icon={'iat'}
                         label={!nav.compact && 'Alignment Tool'}
-                        title={`Go to Alignment Tool.`}
+                        title={`View Alignment Tool.`}
                         onClick={() => {
                             // redirect to Alignment Tool in viewer/editor
                             redirect('/toolkit');

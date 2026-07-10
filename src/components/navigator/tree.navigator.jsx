@@ -108,6 +108,16 @@ const TreeNode = ({data}) => {
 
     // handle view events
     const _handleView = () => {
+        if (nav.compact) {
+            dialog.setCurrent({
+                dialogID: 'items',
+                model: type,
+                items: [data],
+                hasMore: false
+            });
+            return;
+        }
+
         // add node to session path
         addNode(id);
         // reroute to requested data view

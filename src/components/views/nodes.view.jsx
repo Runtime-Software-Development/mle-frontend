@@ -107,7 +107,7 @@ export const NodeTags = ({
                 <li key={`${menuID}_node_menuitem_redirect`}>
                     <Button
                         icon={'externalLink'}
-                        label={`Go to ${modelLabel}`}
+                        label={`View ${modelLabel}`}
                         title={`Redirect to ${label} (${modelLabel}) page.`}
                         onClick={() => { redirect(createNodeRoute(model, 'show', id)) }}
                     />

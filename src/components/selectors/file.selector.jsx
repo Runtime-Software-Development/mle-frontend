@@ -44,7 +44,7 @@ const FileSelector = ({ data, scale='thumb' }) => {
     const _handleDialog = (e) => {
         e.stopPropagation();
 
-        // Click: go to image page
+        // Click: View image panel
         // Shift + click: show metadata
         e.shiftKey
             ? dialog.setCurrent({
@@ -73,21 +73,21 @@ const FileSelector = ({ data, scale='thumb' }) => {
         historic_images: () => <Image
             url={url}
             scale={scale}
-            title={`Click to go to ${filename} page. \nShift + Click to see metadata.`}
+            title={`Click to open ${filename}. \nShift + Click to see metadata.`}
             caption={label}
             onClick={_handleDialog}
         />,
         modern_images: () => <Image
             url={url}
             scale={scale}
-            title={`Click to go to ${filename} page. \nShift + Click to see metadata.`}
+            title={`Click to open ${filename}. \nShift + Click to see metadata.`}
             caption={label}
             onClick={_handleDialog}
         />,
         supplemental_images: () => <Image
             url={url}
             scale={scale}
-            title={`Click to go to ${filename} page. \nShift + Click to see metadata.`}
+            title={`Click to open ${filename}. \nShift + Click to see metadata.`}
             caption={label}
             onClick={_handleDialog}
         />,

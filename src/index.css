@@ -712,22 +712,55 @@ div.nav-scroll button {
 
 .navigator .map {
     border-right: 2px solid #222222;
+    position: relative;
 }
 
 .navigator .map .map-menu {
     position: absolute;
     color: #444444;
-    margin-left: 60px;
-    z-index: 9999;
-    top: 150px;
+    left: 50%;
+    top: 12px;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100% - 24px);
+    margin-left: 0;
+    z-index: 1200;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 6px;
 }
 
 .navigator .map .map-menu button {
-    margin: 0 3px;
+    margin: 0;
+    flex: 0 0 auto;
 }
 
 .navigator .map .map-menu button.activated {
     color: coral;
+}
+
+@media only screen and (max-width: 900px) {
+    .navigator .map .map-menu {
+        left: 50%;
+        top: 8px;
+        transform: translateX(-50%);
+        width: calc(100% - 16px);
+        max-width: calc(100% - 16px);
+        flex-wrap: wrap;
+        justify-content: center;
+        overflow-x: visible;
+        overflow-y: visible;
+        gap: 4px;
+    }
+
+    .navigator .map .map-menu button {
+        font-size: 0.8rem;
+        padding: 6px 8px;
+    }
 }
 
 #map-container {
@@ -3280,30 +3313,5 @@ table.help tfoot td {
     }
 }
 
-/* Small devices (portrait tablets and large phones, 600px and up) */
-@media only screen and (min-width: 200px) {
-    .navigator .map .map-menu {
-        position: absolute;
-        color: #444444;
-        margin-left: 60px;
-        z-index: 9999;
-        top: 12px;
-    }
-}
-
-/* Medium devices (landscape tablets, 768px and up) */
-@media only screen and (min-width: 800px) {}
-
-/* Large devices (laptops/desktops, 992px and up) */
-@media only screen and (min-width: 992px) {
-    .navigator .map .map-menu {
-        position: absolute;
-        color: #444444;
-        margin-left: 60px;
-        z-index: 9999;
-        top: 150px;
-    }
-}
-
-/* Extra large devices (large laptops and desktops, 1200px and up) */
-@media only screen and (min-width: 1200px) {}
+/* Legacy map-menu breakpoint overrides removed.
+   The primary map-menu rule near the map section now controls top anchoring across sizes. */

@@ -146,7 +146,7 @@ function MapNavigator({ filter, hidden }) {
 
     // request station(s) view in selected cluster
     // - if single station, go to that station info page
-    // - for multiple station, go to filter page for ids
+    // - for multiple station, go to filter panel for ids
     const loadStations = React.useCallback((ids = [], append = false) => {
 
         if (ids.length === 0) return;

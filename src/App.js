@@ -68,6 +68,7 @@ export default function App() {
 
     // window dimensions
     const [winWidth, winHeight] = useWindowSize();
+    const isCompact = winWidth < winWidthThreshold;
 
     // initialize/reset panel widths
     React.useEffect(() => {
@@ -79,6 +80,15 @@ export default function App() {
             && navPanelRef.current
             && viewPanelRef.current
         ) {
+            // check if at compact (responsive) breakpoint
+            nav.setCompact(isCompact);
+
+            // compact mode: navigator-only layout (details opened in dialogs)
+            if (isCompact) {
+                mainRef.current.style.gridTemplateColumns = '1fr';
+                return;
+            }
+
             /* Compute navigator panel resize */
             const navPanelWidth = nav.toggle ? Math.max(
                 Math.min( navPanelRef.current.clientWidth, maxNavPanelWidth), minNavPanelWidth
@@ -91,17 +101,23 @@ export default function App() {
                 mainRef.current.clientWidth - navPanelWidth - rightOffest
             ];
 
-            // check if at compact (responsive) breakpoint
-            nav.setCompact(winWidth < winWidthThreshold);
-
             // set new column widths
             mainRef.current.style.gridTemplateColumns = cols.map(c => c.toString() + "px").join(" ");
         }
         return () => {_isMounted.current = false;}
-    }, [nav.toggle, winWidth, winHeight]);
+    }, [nav.toggle, winWidth, winHeight, isCompact]);
+
+    // In compact mode the navigator is the primary panel.
+    React.useEffect(() => {
+        if (isCompact && !nav.toggle) {
+            nav.setToggle(true);
+            nav.setResize(true);
+        }
+    }, [isCompact, nav.toggle]);
 
     /* Initialize panel resize */
     function _resizeStart(e) {
+        if (isCompact) return false;
         /* if slider is no longer engaged, exit this function: */
         if (sliding) return false;
         sliding = true;
@@ -119,6 +135,7 @@ export default function App() {
 
     /* Position the slider and resize panel */
     function _resize(e) {
+        if (isCompact) return false;
         /* if slider is no longer engaged, exit this function: */
         if (!sliding) return false;
 
@@ -149,7 +166,7 @@ export default function App() {
             <BreadcrumbMenu/>
             <main>
                 <div
-                    className={styles.main}
+                    className={`${styles.main} ${isCompact ? styles.compact : ''}`}
                     ref={mainRef}
                     onMouseUp={_resizeEnd}
                     onMouseMove={_resize}

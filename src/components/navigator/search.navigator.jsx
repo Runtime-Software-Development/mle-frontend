@@ -25,6 +25,8 @@ import { getModelLabel } from '../../services/schema.services.client';
 import Accordion from "../common/accordion";
 import {useWindowSize} from "../../utils/events.utils.client";
 import Loading from "../common/loading";
+import {useNav} from "../../providers/nav.provider.client";
+import {useDialog} from "../../providers/dialog.provider.client";
 
 /**
  * Generate unique key.
@@ -45,6 +47,8 @@ const keyID = genID();
 const SearchNavigator = ({limit=5, offset=0, hidden=true}) => {
 
     const router = useRouter();
+    const nav = useNav();
+    const dialog = useDialog();
 
     // search field reference
     const searchRef = React.useRef(null);
@@ -110,6 +114,27 @@ const SearchNavigator = ({limit=5, offset=0, hidden=true}) => {
                 });
         }
     };
+
+    const _handleOpenResult = (item = {}) => {
+        const { id = '', type = '', heading = '' } = item || {};
+        if (!id || !type) return;
+
+        if (nav.compact) {
+            dialog.setCurrent({
+                dialogID: 'items',
+                model: type,
+                items: [{
+                    id: id,
+                    type: type,
+                    label: sanitize(heading)
+                }],
+                hasMore: false
+            });
+            return;
+        }
+
+        router.update(createNodeRoute(type, 'show', id));
+    }
 
     // filter options by owner ID
     const _handleGetMore = (model, offset) => {
@@ -227,7 +252,7 @@ const SearchNavigator = ({limit=5, offset=0, hidden=true}) => {
                                         const excerpt = getExcerpt(blurb, index);
                                         return <div key={`${keyID}_searchresults_${index}`} className={'search-item'}>
                                             <h4 onClick={() => {
-                                                router.update(createNodeRoute(type, 'show', id))
+                                                _handleOpenResult(item)
                                             }}>
                                                 {getModelLabel(item.type)}: {sanitize(item.heading)}
                                             </h4>

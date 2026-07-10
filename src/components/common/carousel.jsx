@@ -106,7 +106,7 @@ const Carousel = ({
                                     scale={'medium'}
                                     fit={fit}
                                     fixedHeight={fixedHeight}
-                                    title={`Go to ${label} ${modelLabel} page.`}
+                                    title={`View ${label} ${modelLabel}.`}
                                     onClick={() => {
                                         return router.update(createNodeRoute(model, 'show', id));
                                     }}
@@ -143,8 +143,8 @@ const Carousel = ({
                         }
                         <li className={`${metadata ? '' : 'push'}`}>
                             <Button
-                                label={'Go to Page'}
-                                title={'Open Capture'}
+                                label={`View ${modelLabel}`}
+                                title={`View ${modelLabel}`}
                                 className={'capture-button'}
                                 icon={'externalLink'}
                                 onClick={() => {

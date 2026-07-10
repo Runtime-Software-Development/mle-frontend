@@ -170,7 +170,7 @@ const EditorMenu = ({
                         label={compact ? '' : 'Go'}
                         size={size}
                         icon={'externalLink'}
-                        title={`Go to ${modelLabel} page.`}
+                        title={`View ${modelLabel}.`}
                         onClick={() => { redirect(createNodeRoute(model, 'show', id)) }}
                     />
                 </li>

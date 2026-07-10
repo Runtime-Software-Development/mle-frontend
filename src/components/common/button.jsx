@@ -36,8 +36,15 @@ const Button = ({
      * @return {Function} input constructor
      */
 
-    // set default hover title
-    title = title || label;
+    // Build a safe DOM title attribute value.
+    // React warns when booleans are passed to non-boolean attributes.
+    const safeLabel = typeof label === 'string' ? label : '';
+    const normalizedTitle = (typeof title === 'string' || typeof title === 'number')
+        ? String(title)
+        : safeLabel
+            ? safeLabel
+            : undefined;
+    const domTitle = normalizedTitle === undefined ? {} : { title: normalizedTitle };
 
     const _buttonElements = {
         submit: () => {
@@ -45,7 +52,7 @@ const Button = ({
                 <button
                     disabled={disabled}
                     className={className}
-                    title={`Submit update.`}
+                    {...(normalizedTitle === undefined ? { title: 'Submit update.' } : domTitle)}
                     type={'submit'}
                     name={name}>
                     { icon ? <Icon type={icon} size={size} /> : ''}{ label ? <span>{label}</span> : ''}
@@ -57,7 +64,7 @@ const Button = ({
                 <button
                     disabled={disabled}
                     className={className}
-                    title={`Reset form.`}
+                    {...(normalizedTitle === undefined ? { title: 'Reset form.' } : domTitle)}
                     type={'reset'}
                     name={name}
                     value={label}
@@ -68,7 +75,7 @@ const Button = ({
             return (
                 <button
                     disabled={disabled}
-                    title={title}
+                    {...domTitle}
                     className={className}
                     onClick={onClick}
                     name={name}
@@ -80,7 +87,7 @@ const Button = ({
             return (
                 <button
                     disabled={disabled}
-                    title={title}
+                    {...domTitle}
                     className={className}
                     onClick={onClick}
                     name={name}

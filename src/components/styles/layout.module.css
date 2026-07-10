@@ -44,3 +44,18 @@
     overflow: auto;
     grid-area: footer;
 }
+
+.compact {
+    grid-template-areas: 'navigator';
+    grid-template-columns: 1fr !important;
+}
+
+.compact .navigator {
+    margin-right: 0;
+    overflow-y: auto;
+}
+
+.compact .dragbar,
+.compact .viewer {
+    display: none;
+}
