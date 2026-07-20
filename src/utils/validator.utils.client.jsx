@@ -168,11 +168,11 @@ const _inputValidations =
 
         /**
          * Validate password value. Uses format: Minimum eight and maximum
-         * 10 characters, at least one uppercase letter, one lowercase letter,
-         * one number and one special character
+         * 128 characters, at least one uppercase letter, one lowercase letter,
+         * and one number. Special characters are optional.
          */
 
         isPassword: (value) => {
-            return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/.test(value);
+            return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&-]{8,128}$/.test(value);
         }
     }

@@ -106,7 +106,7 @@ export const schema = {
             isLongitude: 'Longitude is invalid.',
             isAzimuth: 'Azimuth is invalid.',
             isEmail: 'Not a valid email address.',
-            isPassword: 'Passwords must have a minimum eight and maximum 20 characters, at least one uppercase letter, one lowercase letter, one number and one special character',
+            isPassword: 'Passwords must have a minimum eight and maximum 128 characters, at least one uppercase letter, one lowercase letter, and one number. Special characters are optional.',
             isValidForm: 'Form not valid.',
             isJSON: 'Not valid JSON',
             isRepeatPassword: 'Passwords do not match.'
