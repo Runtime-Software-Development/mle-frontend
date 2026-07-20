@@ -2667,6 +2667,8 @@ Messages
     right: 0;
     top: 0;
     bottom: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .dialog .dialog-header {
@@ -2711,6 +2713,8 @@ Messages
     padding: 2%;
     text-align: inherit;
     overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #00C3AB #000000;
     background-color: inherit;
 }
 
@@ -2720,12 +2724,32 @@ Messages
 
 .dialog.wide .dialog-body {
     height: auto;
+    flex: 1 1 auto;
+    min-height: 0;
     line-height: normal;
     margin: auto;
     padding: 2%;
     text-align: inherit;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #00C3AB #000000;
     background-color: inherit;
+}
+
+.dialog .dialog-body::-webkit-scrollbar {
+    width: 12px;
+}
+
+.dialog .dialog-body::-webkit-scrollbar-track {
+    background: #000000;
+}
+
+.dialog .dialog-body::-webkit-scrollbar-thumb {
+    background-color: #00C3AB;
+    border-radius: 0;
+    border: 3px solid #00C3AB;
 }
 
 .dialog .dialog-body p {
