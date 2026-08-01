@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import Button from './button';
 import {useNav} from "../../providers/nav.provider.client";
 
@@ -33,7 +34,7 @@ const Dialog = ({title, className='', callback=()=>{}, children}) => {
         if (container.current) container.current.scrollIntoView();
     }, [container]);
 
-    return (
+    const dialogView = (
         <div className={`dialog ${className ? className : ''} ${nav.compact ? 'wide' : ''}`}>
             <div className={'content-box'}>
                 <div className={'dialog-header'}>
@@ -56,6 +57,12 @@ const Dialog = ({title, className='', callback=()=>{}, children}) => {
             </div>
         </div>
     );
+
+    if (typeof document === 'undefined') {
+        return dialogView;
+    }
+
+    return createPortal(dialogView, document.body);
 }
 
 export default Dialog;

@@ -2626,7 +2626,7 @@ Messages
     margin: auto;
     background-color: rgba(256, 256, 256, 0.5);
     text-align: left;
-    z-index: 99999;
+    z-index: 2147483647;
 }
 
 .dialog.hidden {
@@ -2650,6 +2650,8 @@ Messages
     margin: auto;
     background: #222222;
     color: #EEEEEE;
+    z-index: 2147483647;
+    box-shadow: 0 14px 50px rgba(0, 0, 0, 0.55);
 }
 
 .dialog.confirm .content-box {
@@ -2678,6 +2680,9 @@ Messages
     text-align: right;
     background-color: #2F4858;
     color: #FFFFFF;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
 .dialog-header button.closer {
@@ -2758,6 +2763,296 @@ Messages
 
 .dialog .dialog-body button {
     margin: 5px;
+}
+
+.dialog.top-layer {
+    z-index: 2147483647 !important;
+}
+
+.dialog.top-layer .content-box {
+    z-index: 2147483647 !important;
+}
+
+.admin-job-status-badges ul {
+    gap: 6px;
+    align-items: center;
+}
+
+.admin-job-filters {
+    margin: 10px 0 14px 0;
+    padding: 10px;
+    border: 1px solid #3a4450;
+    border-radius: 6px;
+    background: #2a2f36;
+    display: grid;
+    gap: 8px;
+}
+
+.admin-job-filters .h-menu ul {
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.admin-job-filter-row ul {
+    align-items: flex-end;
+}
+
+.admin-job-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+}
+
+.admin-job-field label {
+    padding: 0 0 4px 0;
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.admin-job-field input,
+.admin-job-field select {
+    margin: 0;
+    min-height: 36px;
+    padding: 8px 10px;
+    border-radius: 4px;
+}
+
+.admin-job-field-date {
+    min-width: 170px;
+}
+
+.admin-job-filter-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: flex-end;
+}
+
+.admin-job-filter-actions button {
+    min-height: 36px;
+    padding: 8px 12px;
+}
+
+.admin-job-status-row label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0;
+}
+
+.admin-job-status-row input[type=checkbox] {
+    margin: 0 2px 0 0;
+}
+
+.admin-job-pagination-row ul {
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-job-pagination-row ul li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.admin-job-page-size {
+    min-width: 120px;
+}
+
+.admin-job-page-size select {
+    min-width: 96px;
+    min-height: 34px;
+}
+
+table.files td.admin-job-row-transaction {
+    background: #233342;
+    font-weight: 700;
+    border-top: 1px solid #3f566d;
+    border-bottom: 1px solid #3f566d;
+}
+
+table.files td.admin-job-row-child {
+    background: #1f2329;
+}
+
+.log-explorer {
+    margin-top: 8px;
+}
+
+.log-explorer-controls {
+    margin: 0 0 10px 0;
+    padding: 10px;
+    border: 1px solid #3a4450;
+    border-radius: 6px;
+    background: #2a2f36;
+    display: grid;
+    gap: 8px;
+}
+
+.log-explorer-controls-row ul {
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.log-explorer-field {
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+}
+
+.log-explorer-field label {
+    margin: 0;
+    padding: 0 0 4px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.log-explorer-field input,
+.log-explorer-field select {
+    margin: 0;
+    min-height: 36px;
+    padding: 8px 10px;
+    border-radius: 4px;
+}
+
+.log-explorer-actions {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.log-explorer-search {
+    min-width: 320px;
+    flex: 1 1 320px;
+}
+
+.log-explorer-autorefresh {
+    display: inline-flex;
+    align-items: center;
+}
+
+.log-explorer-autorefresh label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    font-weight: 600;
+}
+
+.log-explorer-autorefresh input[type=checkbox] {
+    margin: 0;
+}
+
+.log-explorer-meta {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #c0ceda;
+    font-size: 0.9rem;
+}
+
+.log-virtual-list {
+    height: 52vh;
+    min-height: 340px;
+    max-height: 62vh;
+    overflow: auto;
+    background: #1f2329;
+    border: 1px solid #344555;
+    border-radius: 6px;
+    font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+.log-lines {
+    width: 100%;
+}
+
+.log-line {
+    display: flex;
+    align-items: center;
+    white-space: pre;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.log-line:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.log-line-number {
+    width: 90px;
+    min-width: 90px;
+    text-align: right;
+    color: #84a0b8;
+    padding-right: 12px;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.log-line-text {
+    padding: 0 10px;
+    color: #e5edf4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.log-line-timestamp {
+    color: #8dd6ff;
+    font-weight: 600;
+}
+
+.log-line-severity {
+    font-weight: 700;
+}
+
+.log-level-error {
+    color: #ff8e86;
+}
+
+.log-level-warn {
+    color: #ffcf72;
+}
+
+.log-level-info {
+    color: #99efcf;
+}
+
+.log-level-debug {
+    color: #b7b7ff;
+}
+
+.log-loading,
+.log-empty {
+    padding: 12px;
+    color: #b9c4d0;
+}
+
+@media only screen and (max-width: 900px) {
+    .admin-job-filter-actions {
+        margin-left: 0;
+    }
+
+    .admin-job-field,
+    .admin-job-field-date,
+    .admin-job-page-size {
+        min-width: 100%;
+    }
+
+    .admin-job-pagination-row ul {
+        align-items: flex-start;
+    }
+
+    .log-explorer-actions,
+    .log-explorer-meta {
+        margin-left: 0;
+    }
+
+    .log-explorer-search,
+    .log-explorer-field {
+        min-width: 100%;
+    }
 }
 
 .dialog-load-more-wrap {
