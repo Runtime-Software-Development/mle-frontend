@@ -16,6 +16,8 @@ import {useRouter} from "../../providers/router.provider.client";
 import {redirect} from "../../utils/paths.utils.client";
 import Accordion from "../common/accordion";
 import {useNav} from "../../providers/nav.provider.client";
+import Button from "../common/button";
+import Dialog from "../common/dialog";
 
 /**
  * User sign-in form component.
@@ -32,6 +34,7 @@ const LoginMenu = () => {
 
     const schema = genSchema({ view:'login', model:'users'});
     const [message, setMessage] = React.useState(null);
+    const [showDialog, setShowDialog] = React.useState(false);
 
     // login callback
     const _callback = async (credentials) => {
@@ -46,25 +49,47 @@ const LoginMenu = () => {
         document.body.click();
     }
 
+    const loginContent = <div className={'user-menu'}>
+        <UserMessage
+            message={message}
+            closeable={false}
+        />
+        <Form
+            model={'users'}
+            schema={schema}
+            callback={_callback}
+            onCancel={_onCancel}
+        />
+    </div>;
+
     return <>
         { user
             ? <div>User {user.email} is signed in.</div>
             :
             <nav className={'main'}>
-                <Accordion type={'user'} hideOnClick={true}>
-                    <div className={'user-menu'}>
-                        <UserMessage
-                            message={message}
-                            closeable={false}
-                        />
-                        <Form
-                            model={'users'}
-                            schema={schema}
-                            callback={_callback}
-                            onCancel={_onCancel}
-                        />
-                    </div>
-                </Accordion>
+                {
+                    nav.compact
+                        ? <>
+                            <Button
+                                icon={'login'}
+                                label={'Login'}
+                                onClick={() => setShowDialog(true)}
+                            />
+                            {
+                                showDialog &&
+                                <Dialog
+                                    className={'top-layer'}
+                                    title={'User Login'}
+                                    callback={() => setShowDialog(false)}
+                                >
+                                    {loginContent}
+                                </Dialog>
+                            }
+                        </>
+                        : <Accordion type={'user'} hideOnClick={true}>
+                            {loginContent}
+                        </Accordion>
+                }
             </nav>
             }
         </>

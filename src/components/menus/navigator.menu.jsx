@@ -65,19 +65,22 @@ export const NavigatorMenu = () => {
             <div className={'viewer-menu'}>
                 <div className={'h-menu'}>
                     <ul>
-                        <li>
-                            <Button
-                                className={'nav-toggle'}
-                                disabled={nav.mode === 'iat'}
-                                icon={nav.toggle ? 'hopenleft' : 'hcloseleft'}
-                                title={nav.toggle ? 'Minimize navigator.' : 'Maximize navigator'}
-                                onClick={() => {
-                                    setPref('navToggle', !nav.toggle);
-                                    nav.setToggle(!nav.toggle);
-                                    nav.setResize(true);
-                                }}
-                            />
-                        </li>
+                        {
+                            !nav.compact &&
+                            <li>
+                                <Button
+                                    className={'nav-toggle'}
+                                    disabled={nav.mode === 'iat'}
+                                    icon={nav.toggle ? 'hopenleft' : 'hcloseleft'}
+                                    title={nav.toggle ? 'Minimize navigator.' : 'Maximize navigator'}
+                                    onClick={() => {
+                                        setPref('navToggle', !nav.toggle);
+                                        nav.setToggle(!nav.toggle);
+                                        nav.setResize(true);
+                                    }}
+                                />
+                            </li>
+                        }
                         <li>
                             <Button
                                 icon={'tree'}

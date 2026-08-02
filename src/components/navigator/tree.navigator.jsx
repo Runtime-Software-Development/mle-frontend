@@ -69,10 +69,6 @@ const TreeNode = ({data}) => {
         url=null
     } = data || {};
 
-    // infer dependent capability from schema as API flags may be omitted
-    const schemaDependents = getDependentTypes(type) || getDependentTypes(`${type}s`) || [];
-    const canLoadDependents = hasDependents || (Array.isArray(schemaDependents) && schemaDependents.length > 0);
-
     // create dynamic data states
     const [toggle, setToggle] = React.useState(checkNode(id));
     const [isCurrent, setCurrent] = React.useState(false);
@@ -83,6 +79,17 @@ const TreeNode = ({data}) => {
     const [error, setError] = React.useState(null);
     const treeNode = React.createRef();
     const _isMounted = React.useRef(true);
+
+    // infer dependent capability from API and schema, then resolve to leaf when loaded child list is empty
+    const schemaDependents = getDependentTypes(type) || getDependentTypes(`${type}s`) || [];
+    const schemaSuggestsDependents = Array.isArray(schemaDependents) && schemaDependents.length > 0;
+    const apiHasDependentsFlag = typeof hasDependents === 'boolean' ? hasDependents : null;
+    const hasLoadedDependents = loadedData
+        ? ((loadedData.sorted?.length || 0) + (loadedData.unsorted?.length || 0)) > 0
+        : null;
+    const canLoadDependents = hasLoadedDependents !== null
+        ? hasLoadedDependents
+        : (apiHasDependentsFlag !== null ? apiHasDependentsFlag : schemaSuggestsDependents);
 
     // initialization
     const router = useRouter();
