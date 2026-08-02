@@ -16,7 +16,7 @@ describe('admin.logs.client', () => {
         const segment = await fetchAdminLogSegment({
             router,
             source: 'api',
-            logType: 'access',
+            fileName: 'api/access.log',
         });
 
         expect(segment.mode).toBe('full');
@@ -44,7 +44,7 @@ describe('admin.logs.client', () => {
         const segment = await fetchAdminLogSegment({
             router,
             source: 'api',
-            logType: 'error',
+            fileName: 'error.log',
             offset: 100,
             limit: 3,
         });
@@ -53,6 +53,30 @@ describe('admin.logs.client', () => {
         expect(segment.lines.length).toBe(3);
         expect(segment.hasMore).toBe(true);
         expect(segment.nextOffset).toBe(97);
+    });
+
+    test('extracts pod options and supports pod filtering from per-pod file paths', async () => {
+        const router = {
+            get: jest.fn().mockResolvedValue({
+                response: {
+                    data: [
+                        { file: 'api/pod-a/access.log', contents: ['a-1'] },
+                        { file: 'api/pod-b/access.log', contents: ['b-1'] },
+                    ]
+                }
+            })
+        };
+
+        const segment = await fetchAdminLogSegment({
+            router,
+            source: 'api',
+            fileName: 'api/pod-b/access.log',
+            podFilter: 'pod-b',
+        });
+
+        expect(segment.fileAvailable).toBe(true);
+        expect(segment.lines).toEqual(['b-1']);
+        expect(segment.pods).toEqual(expect.arrayContaining(['pod-a', 'pod-b']));
     });
 
     test('parseLogLine extracts severity and timestamp', () => {

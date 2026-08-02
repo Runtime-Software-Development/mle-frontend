@@ -13,60 +13,125 @@ const normalizeLineArray = (lines) => {
     return lines.map(line => String(line));
 };
 
-const selectLogFileName = (logType = 'access') => {
-    return String(logType) === 'error' ? 'error.log' : 'access.log';
+const inferSourceFromFilePath = (filePath = '') => {
+    const normalized = String(filePath || '').replace(/\\/g, '/').toLowerCase();
+    if (!normalized) return null;
+
+    if (normalized.startsWith('queue/') || normalized.includes('/queue/')) return 'queue';
+    if (normalized.startsWith('api/') || normalized.includes('/api/')) return 'api';
+    return null;
 };
 
-const findCurrentShapeFile = (files = [], source = 'api', logType = 'access', podFilter = '') => {
-    const requestedFileName = selectLogFileName(logType);
-    const normalizedSource = String(source || '').toLowerCase();
-    const normalizedPod = String(podFilter || '').toLowerCase();
+const inferPodFromFilePath = (filePath = '', source = 'api') => {
+    const normalized = String(filePath || '').replace(/\\/g, '/').toLowerCase();
+    if (!normalized) return null;
 
-    const normalizedFiles = (Array.isArray(files) ? files : []).map(item => {
+    const parts = normalized.split('/').filter(Boolean);
+    if (parts.length < 2) return null;
+
+    const filename = parts[parts.length - 1];
+    if (!filename.endsWith('.log')) return null;
+
+    const parent = parts[parts.length - 2] || '';
+    if (!parent) return null;
+    if (parent === String(source || '').toLowerCase()) return null;
+    if (parent === 'logs' || parent === 'log') return null;
+
+    return parent;
+};
+
+const normalizeInventoryFiles = (files = [], requestedSource = 'api') => {
+    return (Array.isArray(files) ? files : []).map(item => {
         const file = String(item?.file || item?.name || item?.path || '');
         const contents = normalizeLineArray(item?.contents || item?.lines || []);
+        const explicitPod = String(item?.pod || item?.subdirectory || item?.directory || '').trim();
+        const explicitSource = String(item?.source || '').trim().toLowerCase();
+
+        const inferredSource = inferSourceFromFilePath(file);
+        const source = explicitSource || inferredSource || String(requestedSource || 'api').toLowerCase();
+        const inferredPod = inferPodFromFilePath(file, source);
+
         return {
             ...item,
             file,
             contents,
+            filename: file.split('/').filter(Boolean).pop() || file,
+            source,
+            pod: explicitPod || inferredPod || '',
+            lowerPod: (explicitPod || inferredPod || '').toLowerCase(),
             lowerFile: file.toLowerCase(),
         };
     });
+};
 
-    const fileByType = normalizedFiles.filter(item => {
-        return item.lowerFile.includes(requestedFileName.toLowerCase());
-    });
+const filterFilesBySourceAndPod = (normalizedFiles = [], source = 'api', podFilter = '') => {
+    const normalizedSource = String(source || '').toLowerCase();
+    const normalizedPod = String(podFilter || '').toLowerCase();
 
-    const fileBySource = fileByType.filter(item => {
+    const sourceFiles = normalizedFiles.filter(item => {
         if (!normalizedSource) return true;
-        return item.lowerFile.includes(normalizedSource);
+        return item.source === normalizedSource || item.lowerFile.includes(normalizedSource);
     });
 
-    const fileByPod = fileBySource.filter(item => {
+    const podFiles = sourceFiles.filter(item => {
         if (!normalizedPod) return true;
+        if (item.lowerPod && item.lowerPod.includes(normalizedPod)) return true;
         return item.lowerFile.includes(normalizedPod);
     });
 
-    return fileByPod[0] || fileBySource[0] || fileByType[0] || normalizedFiles[0] || null;
+    return {
+        sourceFiles,
+        podFiles,
+    };
 };
 
-const extractCurrentShape = (payload, source, logType, podFilter) => {
+const pickSelectedFile = (files = [], requestedFile = '') => {
+    const normalizedRequested = String(requestedFile || '').toLowerCase().trim();
+    if (normalizedRequested) {
+        const exact = files.find(item => String(item.file || '').toLowerCase() === normalizedRequested);
+        if (exact) return exact;
+
+        const byName = files.find(item => String(item.filename || '').toLowerCase() === normalizedRequested);
+        if (byName) return byName;
+    }
+
+    return files[0] || null;
+};
+
+const toInventory = (files = []) => {
+    return files.map(item => ({
+        file: item.file,
+        filename: item.filename,
+        source: item.source,
+        pod: item.pod || '',
+        lineCount: item.contents.length,
+    }));
+};
+
+const extractCurrentShape = (payload, source, requestedFile, podFilter) => {
     const files = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.files)
             ? payload.files
             : [];
 
-    const selectedFile = findCurrentShapeFile(files, source, logType, podFilter);
+    const normalizedFiles = normalizeInventoryFiles(files, source);
+    const { sourceFiles, podFiles } = filterFilesBySourceAndPod(normalizedFiles, source, podFilter);
+
+    const selectedFile = pickSelectedFile(podFiles, requestedFile);
     const selectedLines = selectedFile ? normalizeLineArray(selectedFile.contents) : [];
 
-    const podHints = files
-        .map(item => String(item?.pod || item?.subdirectory || item?.directory || item?.source || ''))
+    const podHints = sourceFiles
+        .map(item => item.pod)
         .filter(Boolean);
+
+    const inventory = toInventory(podFiles);
+
+    const sourceAvailable = source === 'api' ? true : sourceFiles.length > 0;
 
     return {
         mode: 'full',
-        sourceAvailable: source === 'api' ? true : !!selectedFile,
+        sourceAvailable,
         fileAvailable: !!selectedFile,
         selectedFile: selectedFile?.file || null,
         lines: selectedLines,
@@ -75,51 +140,71 @@ const extractCurrentShape = (payload, source, logType, podFilter) => {
         offset: 0,
         total: selectedLines.length,
         pods: Array.from(new Set(podHints)),
+        inventory,
         metadata: {
             fileCount: files.length,
         }
     };
 };
 
-const extractPagedShape = (payload, source, logType) => {
+const extractPagedShape = (payload, source, requestedFile) => {
     const lines = normalizeLineArray(payload?.lines);
+    const selectedFile = String(payload?.file || requestedFile || '').trim();
+    const selectedSource = String(payload?.source || source || 'api').toLowerCase();
+
+    let inventory = [];
+    if (Array.isArray(payload?.files)) {
+        const normalizedFiles = normalizeInventoryFiles(payload.files, selectedSource);
+        inventory = toInventory(normalizedFiles);
+    }
+
+    if (inventory.length === 0 && selectedFile) {
+        inventory = [{
+            file: selectedFile,
+            filename: selectedFile.split('/').filter(Boolean).pop() || selectedFile,
+            source: selectedSource,
+            pod: '',
+            lineCount: lines.length,
+        }];
+    }
 
     return {
         mode: 'paged',
-        sourceAvailable: payload?.source ? String(payload.source) === String(source) : true,
-        fileAvailable: payload?.file ? String(payload.file) === selectLogFileName(logType) : true,
-        selectedFile: payload?.file || selectLogFileName(logType),
+        sourceAvailable: payload?.source ? String(payload.source).toLowerCase() === String(source).toLowerCase() : true,
+        fileAvailable: payload?.file ? (String(payload.file) === String(requestedFile || payload.file)) : true,
+        selectedFile: selectedFile || null,
         lines,
         hasMore: !!payload?.hasMore,
         nextOffset: Number.isFinite(Number(payload?.nextOffset)) ? Number(payload.nextOffset) : null,
         offset: Number.isFinite(Number(payload?.offset)) ? Number(payload.offset) : 0,
         total: Number.isFinite(Number(payload?.total)) ? Number(payload.total) : lines.length,
         pods: Array.isArray(payload?.pods) ? payload.pods : [],
+        inventory,
         metadata: {
             limit: payload?.limit || lines.length,
         }
     };
 };
 
-const normalizeResponseShape = (payload, source, logType, podFilter) => {
+const normalizeResponseShape = (payload, source, requestedFile, podFilter) => {
     // Future paged shape: {source,file,offset,limit,lines,hasMore}
     if (isObject(payload) && Array.isArray(payload?.lines)) {
-        return extractPagedShape(payload, source, logType);
+        return extractPagedShape(payload, source, requestedFile);
     }
 
     // Future nested source shape.
     if (isObject(payload) && isObject(payload?.sources)) {
         const sourcePayload = payload.sources[source] || payload.sources[source?.toUpperCase?.()] || null;
         if (sourcePayload && Array.isArray(sourcePayload?.lines)) {
-            return extractPagedShape(sourcePayload, source, logType);
+            return extractPagedShape(sourcePayload, source, requestedFile);
         }
         if (sourcePayload && Array.isArray(sourcePayload?.files)) {
-            return extractCurrentShape(sourcePayload.files, source, logType, podFilter);
+            return extractCurrentShape(sourcePayload.files, source, requestedFile, podFilter);
         }
     }
 
     // Current shape: [{file, contents}] or {files:[...]}
-    return extractCurrentShape(payload, source, logType, podFilter);
+    return extractCurrentShape(payload, source, requestedFile, podFilter);
 };
 
 /**
@@ -128,7 +213,7 @@ const normalizeResponseShape = (payload, source, logType, podFilter) => {
  * @param {Object} input
  * @param {Object} input.router
  * @param {string} [input.source]
- * @param {string} [input.logType]
+ * @param {string} [input.fileName]
  * @param {number|null} [input.offset]
  * @param {number} [input.limit]
  * @param {string} [input.podFilter]
@@ -137,17 +222,21 @@ const normalizeResponseShape = (payload, source, logType, podFilter) => {
 export const fetchAdminLogSegment = async ({
     router,
     source = 'api',
-    logType = 'access',
+    fileName = '',
     offset = null,
     limit = 1000,
     podFilter = '',
 }) => {
+    const requestedFile = String(fileName || '').trim();
+
     const params = {
         source,
-        file: selectLogFileName(logType),
-        type: logType,
         limit,
     };
+
+    if (requestedFile) {
+        params.file = requestedFile;
+    }
 
     if (offset !== null && Number.isFinite(Number(offset))) {
         params.offset = Number(offset);
@@ -166,7 +255,7 @@ export const fetchAdminLogSegment = async ({
     }
 
     const payload = res?.response?.data || [];
-    return normalizeResponseShape(payload, source, logType, podFilter);
+    return normalizeResponseShape(payload, source, requestedFile, podFilter);
 };
 
 export const parseLogLine = (line = '', lineNumber = 1) => {

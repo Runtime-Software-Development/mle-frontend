@@ -23,6 +23,11 @@ const AUTO_LOAD_TOP_THRESHOLD_PX = 64;
 
 const defaultLogError = { msg: '', type: 'error' };
 
+const getDateMs = (value = '') => {
+    const ts = value ? new Date(value).getTime() : NaN;
+    return Number.isFinite(ts) ? ts : null;
+};
+
 const getSeverityClass = (severity = '') => {
     const level = String(severity || '').toUpperCase();
     if (level === 'ERROR' || level === 'FATAL') return 'log-level-error';
@@ -102,7 +107,8 @@ const renderHighlightedLine = (row) => {
 
 const LogExplorer = ({ router, refreshToken = 0 }) => {
     const [source, setSource] = React.useState('api');
-    const [logType, setLogType] = React.useState('access');
+    const [selectedLogFile, setSelectedLogFile] = React.useState('');
+    const [fileOptions, setFileOptions] = React.useState([]);
     const [podFilter, setPodFilter] = React.useState('');
     const [podOptions, setPodOptions] = React.useState([]);
 
@@ -118,8 +124,14 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
     const [mode, setMode] = React.useState('full');
     const [nextOffset, setNextOffset] = React.useState(null);
     const [selectedFile, setSelectedFile] = React.useState('');
+    const [lastUpdated, setLastUpdated] = React.useState('');
+    const [lineCountReturned, setLineCountReturned] = React.useState(0);
+    const [queueAvailable, setQueueAvailable] = React.useState(null);
 
     const [search, setSearch] = React.useState('');
+    const [timeStart, setTimeStart] = React.useState('');
+    const [timeEnd, setTimeEnd] = React.useState('');
+    const [newestFirst, setNewestFirst] = React.useState(true);
     const [autoRefresh, setAutoRefresh] = React.useState(false);
 
     const [scrollTop, setScrollTop] = React.useState(0);
@@ -129,7 +141,12 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
     const loadingOlderRef = React.useRef(false);
 
     const setQueueUnavailableError = React.useCallback(() => {
-        setError({ msg: 'Queue log endpoint not enabled yet.', type: 'warning' });
+        setError({ msg: 'Queue logs unavailable for current environment.', type: 'warning' });
+    }, []);
+
+    const updateMetadata = React.useCallback((segment) => {
+        setLastUpdated(new Date().toLocaleString());
+        setLineCountReturned(Array.isArray(segment?.lines) ? segment.lines.length : 0);
     }, []);
 
     const applyFullMode = React.useCallback((segment) => {
@@ -167,15 +184,21 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
             const segment = await fetchAdminLogSegment({
                 router,
                 source,
-                logType,
+                fileName: selectedLogFile,
                 limit: INITIAL_TAIL_LINES,
                 podFilter,
             });
 
             setSelectedFile(segment.selectedFile || '');
             setPodOptions(Array.isArray(segment.pods) ? segment.pods : []);
+            setFileOptions(Array.isArray(segment.inventory) ? segment.inventory : []);
+            if (segment.selectedFile && segment.selectedFile !== selectedLogFile) {
+                setSelectedLogFile(segment.selectedFile);
+            }
+            updateMetadata(segment);
 
             if (!segment.sourceAvailable && source === 'queue') {
+                setQueueAvailable(false);
                 setQueueUnavailableError();
                 setAllLines([]);
                 setLoadedLines([]);
@@ -183,8 +206,12 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
                 return;
             }
 
+            if (source === 'queue') {
+                setQueueAvailable(true);
+            }
+
             if (!segment.fileAvailable) {
-                setError({ msg: `Log file ${logType}.log is not available for ${source.toUpperCase()}.`, type: 'warning' });
+                setError({ msg: `Selected log file is not available for ${source.toUpperCase()}.`, type: 'warning' });
                 setAllLines([]);
                 setLoadedLines([]);
                 setHasMoreOlder(false);
@@ -198,6 +225,7 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
             }
         } catch (err) {
             if (source === 'queue') {
+                setQueueAvailable(false);
                 setQueueUnavailableError();
             } else {
                 setError({ msg: err?.message || 'Unable to load logs.', type: 'error' });
@@ -208,19 +236,28 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
         } finally {
             setLoading(false);
         }
-    }, [router, source, logType, podFilter, applyFullMode, applyPagedMode, setQueueUnavailableError]);
+    }, [router, source, selectedLogFile, podFilter, applyFullMode, applyPagedMode, setQueueUnavailableError, updateMetadata]);
 
     const refreshLatest = React.useCallback(async () => {
         try {
             const segment = await fetchAdminLogSegment({
                 router,
                 source,
-                logType,
+                fileName: selectedLogFile,
                 limit: INITIAL_TAIL_LINES,
                 podFilter,
             });
 
             setSelectedFile(segment.selectedFile || '');
+            setFileOptions(Array.isArray(segment.inventory) ? segment.inventory : []);
+            if (segment.selectedFile && segment.selectedFile !== selectedLogFile) {
+                setSelectedLogFile(segment.selectedFile);
+            }
+            updateMetadata(segment);
+
+            if (source === 'queue') {
+                setQueueAvailable(true);
+            }
 
             if (segment.mode === 'paged') {
                 // Without a stable token/offset contract, safest refresh is a lightweight replace.
@@ -251,12 +288,13 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
             setHasMoreOlder(Math.max(0, oldestLoadedIndex) > 0);
         } catch (err) {
             if (source === 'queue') {
+                setQueueAvailable(false);
                 setQueueUnavailableError();
             } else {
                 setError({ msg: err?.message || 'Unable to refresh logs.', type: 'warning' });
             }
         }
-    }, [router, source, logType, podFilter, oldestLoadedIndex, setQueueUnavailableError]);
+    }, [router, source, selectedLogFile, podFilter, oldestLoadedIndex, setQueueUnavailableError, updateMetadata]);
 
     const loadOlder = React.useCallback(async (reason = 'manual') => {
         if (!hasMoreOlder) return;
@@ -285,7 +323,7 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
                     const segment = await fetchAdminLogSegment({
                         router,
                         source,
-                        logType,
+                        fileName: selectedLogFile,
                         offset: Number(nextOffset),
                         limit: OLDER_CHUNK_LINES,
                         podFilter,
@@ -296,6 +334,7 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
                     setLineNumberBase(Number.isFinite(Number(segment.offset)) ? Number(segment.offset) + 1 : lineNumberBase);
                     setHasMoreOlder(!!segment.hasMore);
                     setNextOffset(Number.isFinite(Number(segment.nextOffset)) ? Number(segment.nextOffset) : null);
+                    updateMetadata(segment);
                 } catch (err) {
                     setError({ msg: err?.message || 'Unable to load older log lines.', type: 'warning' });
                 } finally {
@@ -318,7 +357,7 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
                 });
             }
         }
-    }, [hasMoreOlder, mode, oldestLoadedIndex, allLines, nextOffset, router, source, logType, podFilter, lineNumberBase]);
+    }, [hasMoreOlder, mode, oldestLoadedIndex, allLines, nextOffset, router, source, selectedLogFile, podFilter, lineNumberBase, updateMetadata]);
 
     React.useEffect(() => {
         loadInitial();
@@ -349,25 +388,47 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
         return () => observer.disconnect();
     }, []);
 
-    const parsedRows = React.useMemo(() => {
-        return loadedLines.map((line, index) => parseLogLine(line, lineNumberBase + index));
-    }, [loadedLines, lineNumberBase]);
+    const normalizedRows = React.useMemo(() => {
+        return loadedLines.map((line, index) => {
+            const parsed = parseLogLine(line, lineNumberBase + index);
+            const timestampMs = parsed.timestamp ? getDateMs(parsed.timestamp.replace(' ', 'T')) : null;
+
+            return {
+                ...parsed,
+                source,
+                pod: podFilter || 'all',
+                fileType: selectedFile || selectedLogFile || 'unknown',
+                line: parsed.text,
+                timestampMs,
+            };
+        });
+    }, [loadedLines, lineNumberBase, source, podFilter, selectedFile, selectedLogFile]);
 
     const filteredRows = React.useMemo(() => {
         const term = String(search || '').trim().toLowerCase();
-        if (!term) return parsedRows;
-        return parsedRows.filter(row => row.text.toLowerCase().includes(term));
-    }, [parsedRows, search]);
+        const startMs = getDateMs(timeStart);
+        const endMs = getDateMs(timeEnd);
 
-    const newestFirstRows = React.useMemo(() => {
-        return [...filteredRows].reverse();
-    }, [filteredRows]);
+        return normalizedRows
+            .filter(row => !term || row.text.toLowerCase().includes(term))
+            .filter(row => {
+                if (startMs === null && endMs === null) return true;
+                if (!Number.isFinite(row.timestampMs)) return false;
+                if (startMs !== null && row.timestampMs < startMs) return false;
+                if (endMs !== null && row.timestampMs > endMs) return false;
+                return true;
+            });
+    }, [normalizedRows, search, timeStart, timeEnd]);
 
-    const totalRows = newestFirstRows.length;
+    const orderedRows = React.useMemo(() => {
+        return newestFirst ? [...filteredRows].reverse() : filteredRows;
+    }, [filteredRows, newestFirst]);
+
+    const totalRows = orderedRows.length;
     const visibleCount = Math.ceil((containerHeight || 460) / VIRTUAL_LINE_HEIGHT) + VIRTUAL_OVERSCAN;
     const startIndex = Math.max(0, Math.floor(scrollTop / VIRTUAL_LINE_HEIGHT) - VIRTUAL_OVERSCAN);
     const endIndex = Math.min(totalRows, startIndex + visibleCount);
-    const rowsWindow = newestFirstRows.slice(startIndex, endIndex);
+    const rowsWindow = orderedRows.slice(startIndex, endIndex);
     const topSpacer = startIndex * VIRTUAL_LINE_HEIGHT;
     const bottomSpacer = Math.max(0, (totalRows - endIndex) * VIRTUAL_LINE_HEIGHT);
 
@@ -401,18 +462,25 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
                                 onChange={(e) => setSource(e.target.value)}
                             >
                                 <option value={'api'}>API Logs</option>
-                                <option value={'queue'}>Queue Logs</option>
+                                <option value={'queue'} disabled={queueAvailable === false}>Queue Logs{queueAvailable === false ? ' (Unavailable)' : ''}</option>
                             </select>
                         </li>
                         <li className={'log-explorer-field'}>
-                            <label htmlFor={'log_type'}>Log Type</label>
+                            <label htmlFor={'log_file'}>Log File</label>
                             <select
-                                id={'log_type'}
-                                value={logType}
-                                onChange={(e) => setLogType(e.target.value)}
+                                id={'log_file'}
+                                value={selectedLogFile}
+                                onChange={(e) => setSelectedLogFile(e.target.value)}
+                                disabled={fileOptions.length === 0}
                             >
-                                <option value={'access'}>access.log</option>
-                                <option value={'error'}>error.log</option>
+                                {
+                                    fileOptions.length === 0
+                                        ? <option value={''}>No files discovered</option>
+                                        : fileOptions.map((item) => {
+                                            const label = `${item.filename} (${String(item.source || source).toUpperCase()})`;
+                                            return <option key={`log_file_opt_${item.file}`} value={item.file}>{label}</option>;
+                                        })
+                                }
                             </select>
                         </li>
                         <li className={'log-explorer-field'}>
@@ -431,6 +499,7 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
                         </li>
                         <li className={'log-explorer-actions'}>
                             <Button icon={'sync'} label={'Refresh'} onClick={refreshLatest} />
+                            <Button icon={'down'} label={'Load Newer'} onClick={refreshLatest} />
                             <Button
                                 icon={'up'}
                                 label={'Load Older'}
@@ -453,6 +522,35 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
                                 placeholder={'Filter currently loaded lines'}
                             />
                         </li>
+                        <li className={'log-explorer-field'}>
+                            <label htmlFor={'log_time_start'}>Start Time</label>
+                            <input
+                                id={'log_time_start'}
+                                type={'datetime-local'}
+                                value={timeStart}
+                                onChange={(e) => setTimeStart(e.target.value)}
+                            />
+                        </li>
+                        <li className={'log-explorer-field'}>
+                            <label htmlFor={'log_time_end'}>End Time</label>
+                            <input
+                                id={'log_time_end'}
+                                type={'datetime-local'}
+                                value={timeEnd}
+                                onChange={(e) => setTimeEnd(e.target.value)}
+                            />
+                        </li>
+                        <li className={'log-explorer-autorefresh'}>
+                            <label htmlFor={'log_newest_first'}>
+                                <input
+                                    id={'log_newest_first'}
+                                    type={'checkbox'}
+                                    checked={newestFirst}
+                                    onChange={(e) => setNewestFirst(!!e.target.checked)}
+                                />
+                                Newest first
+                            </label>
+                        </li>
                         <li className={'log-explorer-autorefresh'}>
                             <label htmlFor={'log_auto_refresh'}>
                                 <input
@@ -466,7 +564,11 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
                         </li>
                         <li className={'log-explorer-meta'}>
                             <span>{totalRows} visible lines</span>
+                            <span>Source: {source.toUpperCase()}</span>
+                            <span>Pod: {podFilter || 'All'}</span>
                             {selectedFile && <span>File: {selectedFile}</span>}
+                            <span>Returned: {lineCountReturned}</span>
+                            <span>Updated: {lastUpdated || 'n/a'}</span>
                         </li>
                     </ul>
                 </div>
@@ -481,7 +583,7 @@ const LogExplorer = ({ router, refreshToken = 0 }) => {
                 {!loading && totalRows === 0 && !error?.msg && (
                     <div className={'log-empty'}>
                         {source === 'queue'
-                            ? 'Queue log endpoint not enabled yet.'
+                            ? 'Queue logs unavailable for current environment.'
                             : 'No log lines found for the current selection.'}
                     </div>
                 )}
