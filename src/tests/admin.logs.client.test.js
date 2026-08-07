@@ -1,4 +1,4 @@
-import { fetchAdminLogSegment, parseLogLine } from './admin.logs.client';
+import { fetchAdminLogSegment, parseLogLine } from '../services/admin.logs.client';
 
 describe('admin.logs.client', () => {
     test('adapts current logs payload shape', async () => {
@@ -77,6 +77,29 @@ describe('admin.logs.client', () => {
         expect(segment.fileAvailable).toBe(true);
         expect(segment.lines).toEqual(['b-1']);
         expect(segment.pods).toEqual(expect.arrayContaining(['pod-a', 'pod-b']));
+    });
+
+    test('treats root-level queue error filenames as queue logs', async () => {
+        const router = {
+            get: jest.fn().mockResolvedValue({
+                response: {
+                    data: [
+                        { file: 'queue-error.log', contents: ['queue failure'] },
+                    ]
+                }
+            })
+        };
+
+        const segment = await fetchAdminLogSegment({
+            router,
+            source: 'queue',
+            fileName: 'queue-error.log',
+        });
+
+        expect(segment.sourceAvailable).toBe(true);
+        expect(segment.fileAvailable).toBe(true);
+        expect(segment.inventory[0].source).toBe('queue');
+        expect(segment.lines).toEqual(['queue failure']);
     });
 
     test('parseLogLine extracts severity and timestamp', () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import AdminView from '../../components/views/admin.view';
+import AdminView from '../components/views/admin.view';
 
 const mockRouter = {
     get: jest.fn(),

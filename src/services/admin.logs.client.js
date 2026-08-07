@@ -17,7 +17,9 @@ const inferSourceFromFilePath = (filePath = '') => {
     const normalized = String(filePath || '').replace(/\\/g, '/').toLowerCase();
     if (!normalized) return null;
 
-    if (normalized.startsWith('queue/') || normalized.includes('/queue/')) return 'queue';
+    const filename = normalized.split('/').pop() || '';
+
+    if (normalized.startsWith('queue/') || normalized.includes('/queue/') || filename.startsWith('queue')) return 'queue';
     if (normalized.startsWith('api/') || normalized.includes('/api/')) return 'api';
     return null;
 };
