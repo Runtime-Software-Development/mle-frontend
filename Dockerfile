@@ -4,10 +4,6 @@ FROM node:24-bookworm-slim AS build
 # Set working directory
 WORKDIR /app
 
-# set ENV variables for build
-ARG REACT_APP_BASEURL
-ARG REACT_APP_API_BASEURL
-
 # Install dependencies
 COPY package*.json ./
 RUN npm ci && npm cache clean --force

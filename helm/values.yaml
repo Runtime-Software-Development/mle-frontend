@@ -13,6 +13,16 @@ imagePullSecrets:
 nameOverride: ""
 fullnameOverride: ""
 
+backend:
+  apiService: mle-backend-mle-api-api-svc
+  apiPort: 3000
+  keycloakService: mle-backend-mle-api-keycloak-svc
+  keycloakPort: 8081
+
+appConfig:
+  REACT_APP_BASEURL: "https://endpoint.mle.dev"
+  REACT_APP_API_BASEURL: "https://endpoint.mle.dev/api"
+
 nginxConfig: |
   log_format proxy_diagnostics '$time_iso8601 request_id=$request_id client=$remote_addr '
     'method=$request_method uri="$request_uri" status=$status req_len=$request_length '
@@ -43,7 +53,7 @@ nginxConfig: |
     # API calls from frontend
     location /api/ {
         rewrite ^/api/(.*) /$1 break;
-        proxy_pass http://mle-backend-mle-api-api-svc:3000;
+        proxy_pass http://{{ .Values.backend.apiService }}:{{ .Values.backend.apiPort }};
         proxy_http_version 1.0;
         proxy_set_header Connection "close";
         proxy_set_header Host $host;
@@ -69,7 +79,7 @@ nginxConfig: |
 
     # Image/static assets served by API static mount
     location /uploads/ {
-        proxy_pass http://mle-backend-mle-api-api-svc:3000;
+        proxy_pass http://{{ .Values.backend.apiService }}:{{ .Values.backend.apiPort }};
         proxy_http_version 1.0;
         proxy_set_header Connection "close";
         proxy_set_header Host $host;
@@ -90,7 +100,7 @@ nginxConfig: |
     # Keycloak proxy
     location /auth/ {
         resolver 10.96.0.10 valid=30s;
-        set $keycloak_upstream http://mle-backend-mle-api-keycloak-svc:8081;
+        set $keycloak_upstream http://{{ .Values.backend.keycloakService }}:{{ .Values.backend.keycloakPort }};
         proxy_pass $keycloak_upstream/;
 
         proxy_set_header Host $host;
@@ -133,7 +143,7 @@ ingress:
   className: "traefik"
   annotations: {} # No middlewares needed!
   hosts:
-    - host: mlp-explorer-test.kestrel.arbutus.cloud
+    - host: endpoint.mle.dev
       paths:
         - path: /
           pathType: Prefix

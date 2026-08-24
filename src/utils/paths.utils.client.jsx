@@ -27,8 +27,21 @@ export function getQuery(key) {
  * @public
  */
 
+function getRuntimeConfig() {
+    if (typeof window === 'undefined') {
+        return {};
+    }
+    return window.__APP_CONFIG__ || {};
+}
+
+function getConfiguredValue(key, fallback='') {
+    const runtimeValue = getRuntimeConfig()[key];
+    if (runtimeValue) return runtimeValue;
+    return process.env[key] || fallback;
+}
+
 export function getRoot() {
-    return process.env.REACT_APP_BASEURL;
+    return getConfiguredValue('REACT_APP_BASEURL', window.location.origin);
 }
 
 /**
@@ -73,7 +86,7 @@ export function createRoute(path='/', params) {
 
 export function createAPIURL(route, params={}) {
     const query = serialize((params || {}));
-    const base = process.env.REACT_APP_API_BASEURL;
+    const base = getConfiguredValue('REACT_APP_API_BASEURL', `${window.location.origin}/api`);
     return `${base}${route}${params && Object.keys(params).length > 0 ? '?' + query : ''}`
 }
 
@@ -86,7 +99,7 @@ export function createAPIURL(route, params={}) {
 
 export function createClientURL(route, params={}) {
     const query = serialize((params || {}));
-    const base = process.env.REACT_APP_BASEURL;
+    const base = getConfiguredValue('REACT_APP_BASEURL', window.location.origin);
     return `${base}${route}${params && Object.keys(params).length > 0 ? '?' + query : ''}`
 }
 

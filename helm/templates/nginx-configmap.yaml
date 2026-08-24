@@ -4,4 +4,10 @@ metadata:
   name: {{ include "mle-frontend.fullname" . }}-nginx-config
 binaryData: {}
 data:
-  default.conf: {{ .Values.nginxConfig | quote }}
+  default.conf: |
+    {{- tpl .Values.nginxConfig . | nindent 4 }}
+  runtime-config.js: |
+    window.__APP_CONFIG__ = {
+      REACT_APP_BASEURL: {{ .Values.appConfig.REACT_APP_BASEURL | quote }},
+      REACT_APP_API_BASEURL: {{ .Values.appConfig.REACT_APP_API_BASEURL | quote }}
+    };
