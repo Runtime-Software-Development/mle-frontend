@@ -1,6 +1,26 @@
-import { fetchAdminLogSegment, parseLogLine } from '../services/admin.logs.client';
+import { fetchAdminLogFiles, fetchAdminLogSegment, parseLogLine } from '../services/admin.logs.client';
 
 describe('admin.logs.client', () => {
+    test('fetches documented inventory once, preserving missing details and trimming trailing empty lines', async () => {
+        const router = { get: jest.fn().mockResolvedValue({ response: { data: [
+            { source: 'api', file: 'error.log', contents: ['first', '', 'last', '', ''] },
+            { source: 'queue', file: 'queue-log-fetch-error', contents: [], missing: true, details: 'Unavailable' },
+        ] } }) };
+        const files = await fetchAdminLogFiles(router);
+        expect(router.get).toHaveBeenCalledWith('/admin/logs');
+        expect(files[0].contents).toEqual(['first', '', 'last']);
+        expect(files[1]).toMatchObject({ source: 'queue', missing: true, details: 'Unavailable' });
+    });
+
+    test.each([
+        [{ error: { msg: 'Forbidden' } }, 'Forbidden'],
+        [null, 'Unable to load logs.'],
+        [{ response: { data: {} } }, 'Unexpected log response'],
+    ])('reports invalid or unsuccessful inventory responses', async (response, message) => {
+        const router = { get: jest.fn().mockResolvedValue(response) };
+        await expect(fetchAdminLogFiles(router)).rejects.toThrow(message);
+    });
+
     test('adapts current logs payload shape', async () => {
         const router = {
             get: jest.fn().mockResolvedValue({

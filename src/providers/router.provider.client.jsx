@@ -260,12 +260,12 @@ function RouterProvider(props) {
             // reject null paths or when API is offline, error found
             if (!route || !online) return null;
             let res = await makeRequest({ url: route, method: 'DELETE' })
-                .then(callback)
                 .catch(err => {
                     // handle API connection errors
                     console.error('An API error occurred:', err)
                     throw err;
                 });
+            callback(res);
             return handleResponse(res);
         } catch (err) {
             console.error('Error removing node:', err);

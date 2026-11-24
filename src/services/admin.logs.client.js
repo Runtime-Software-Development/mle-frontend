@@ -10,7 +10,21 @@ const isObject = (value) => !!value && typeof value === 'object' && !Array.isArr
 
 const normalizeLineArray = (lines) => {
     if (!Array.isArray(lines)) return [];
-    return lines.map(line => String(line));
+    const normalized = lines.map(line => String(line));
+    while (normalized.length && normalized[normalized.length - 1] === '') normalized.pop();
+    return normalized;
+};
+
+export const fetchAdminLogFiles = async (router) => {
+    const res = await router.get('/admin/logs');
+    if (!res || res.error) {
+        throw new Error(res?.error?.msg || 'Unable to load logs.');
+    }
+    const files = res?.response?.data;
+    if (!Array.isArray(files) && !Array.isArray(files?.files)) {
+        throw new Error('Unexpected log response. Expected a list of log files.');
+    }
+    return normalizeInventoryFiles(Array.isArray(files) ? files : files.files);
 };
 
 const inferSourceFromFilePath = (filePath = '') => {

@@ -1,188 +1,115 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { saveAs } from 'file-saver';
 import LogExplorer from '../../components/views/logExplorer.view';
 
-jest.mock('../../components/common/button', () => {
-    return function MockButton({ label, icon, onClick, disabled }) {
-        return (
-            <button type="button" disabled={disabled} onClick={onClick}>
-                {label || icon || 'button'}
-            </button>
-        );
-    };
+jest.mock('file-saver', () => ({ saveAs: jest.fn() }));
+jest.mock('../../components/common/button', () => function MockButton({ label, onClick, disabled, spin, icon }) {
+    return <button disabled={disabled} onClick={onClick} data-spin={spin} data-icon={icon}>{label}</button>;
 });
-
 jest.mock('../../components/common/message', () => ({
     UserMessage: ({ message }) => <div>{message?.msg}</div>
 }));
+global.ResizeObserver = class { observe() {} disconnect() {} };
 
-class MockResizeObserver {
-    observe() {}
-    disconnect() {}
-    unobserve() {}
-}
+const response = (data) => ({ response: { data } });
+const files = [
+    { source: 'api', file: 'error.log', contents: ['2026-08-01 12:00:00 ERROR first', '2026-08-01 12:00:01 ERROR second', ''] },
+    { source: 'api', file: 'access.log', contents: [], missing: true },
+    { source: 'queue', file: 'queue.log', contents: ['queue warning'] },
+];
 
-global.ResizeObserver = MockResizeObserver;
+beforeEach(() => jest.clearAllMocks());
 
-const getRouter = (impl) => ({
-    get: jest.fn(impl),
+test('loads once and switches sources/files locally with no pod controls', async () => {
+    const router = { get: jest.fn().mockResolvedValue(response(files)) };
+    render(<LogExplorer router={router} />);
+    await screen.findByText('2 visible lines of 2');
+    expect(router.get).toHaveBeenCalledWith('/admin/logs');
+    expect(screen.queryByLabelText(/Pod/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Load Newer')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Log File'), { target: { value: 'access.log' } });
+    expect(screen.getByText('No entries since last rotation.')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'queue' } });
+    expect(screen.getByText('queue warning')).toBeInTheDocument();
+    expect(router.get).toHaveBeenCalledTimes(1);
 });
 
-describe('LogExplorer', () => {
-    test('renders API logs from /admin/logs current shape', async () => {
-        const router = getRouter(() => Promise.resolve({
-            response: {
-                data: [
-                    { file: 'api/access.log', contents: ['2026-08-01 12:00:00 INFO start', '2026-08-01 12:00:01 ERROR fail'] },
-                    { file: 'api/error.log', contents: ['error one'] },
-                ]
-            }
-        }));
+test('large files stay bounded until Load Older is explicitly selected', async () => {
+    const lines = Array.from({ length: 50000 }, (_, index) => `INFO line ${index}`);
+    const router = { get: jest.fn().mockResolvedValue(response([{ source: 'api', file: 'error.log', contents: lines }])) };
+    render(<LogExplorer router={router} />);
+    await screen.findByText('1200 visible lines of 50000');
+    expect(document.querySelectorAll('.log-line').length).toBeLessThan(100);
+    expect(document.querySelector('.log-line-text')).toHaveTextContent('line 49999');
+    fireEvent.click(screen.getByText('Load Older'));
+    expect(screen.getByText('2400 visible lines of 50000')).toBeInTheDocument();
+    expect(router.get).toHaveBeenCalledTimes(1);
+});
 
-        render(<LogExplorer router={router} refreshToken={0} />);
-
-        await waitFor(() => {
-            expect(screen.getByText(/2 visible lines/i)).toBeInTheDocument();
-        });
-
-        expect(screen.getByText(/Source: API/i)).toBeInTheDocument();
-        expect(screen.getByText(/Pod: All/i)).toBeInTheDocument();
-        expect(screen.getByText(/Returned: 2/i)).toBeInTheDocument();
-        expect(screen.getByText(/File: api\/access.log/i)).toBeInTheDocument();
+test('downloads complete selected snapshot rather than filtered preview without another request', async () => {
+    const lines = Array.from({ length: 1500 }, (_, index) => `line ${index}`);
+    const router = { get: jest.fn().mockResolvedValue(response([{ source: 'api', file: 'error.log', contents: lines }])) };
+    render(<LogExplorer router={router} />);
+    await screen.findByText('1200 visible lines of 1500');
+    fireEvent.change(screen.getByLabelText('Search Loaded Lines'), { target: { value: 'line 1499' } });
+    fireEvent.click(screen.getByText('Download Log'));
+    expect(saveAs).toHaveBeenCalledWith(expect.any(Blob), 'api-error.log');
+    const text = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsText(saveAs.mock.calls[0][0]);
     });
+    expect(text).toBe(lines.join('\n') + '\n');
+    expect(router.get).toHaveBeenCalledTimes(1);
+});
 
-    test('shows queue endpoint unavailable message gracefully', async () => {
-        const router = getRouter((route, params) => {
-            if (params?.source === 'queue') {
-                return Promise.resolve({ error: { msg: 'Not found' } });
-            }
-            return Promise.resolve({ response: { data: [{ file: 'api/access.log', contents: ['ok'] }] } });
-        });
+test('queue failures preserve backend details and can be retried', async () => {
+    const router = { get: jest.fn().mockResolvedValue(response([
+        ...files.slice(0, 2), { source: 'queue', file: 'queue-log-fetch-error', missing: true, details: 'Connection refused', contents: [] }
+    ])) };
+    render(<LogExplorer router={router} />);
+    await screen.findByText('2 visible lines of 2');
+    fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'queue' } });
+    expect(screen.getByText('Queue logs unavailable: Connection refused')).toBeInTheDocument();
+    expect(screen.getByText('Download Log')).toBeDisabled();
+    router.get.mockResolvedValue(response(files));
+    fireEvent.click(screen.getByText('Refresh'));
+    await screen.findByText('queue warning');
+    expect(screen.queryByText(/Connection refused/)).not.toBeInTheDocument();
+});
 
-        render(<LogExplorer router={router} refreshToken={0} />);
+test('refresh replaces a snapshot rather than mixing logs from different instances', async () => {
+    const router = { get: jest.fn().mockResolvedValue(response(files)) };
+    render(<LogExplorer router={router} />);
+    await screen.findByText('2 visible lines of 2');
+    router.get.mockResolvedValue(response([{ source: 'api', file: 'error.log', contents: ['other instance'] }]));
+    fireEvent.click(screen.getByText('Refresh'));
+    await screen.findByText('other instance');
+    expect(screen.queryByText(/ERROR second/)).not.toBeInTheDocument();
+    expect(router.get).toHaveBeenCalledTimes(2);
+});
 
-        await waitFor(() => expect(screen.getByText(/1 visible lines/i)).toBeInTheDocument());
+test('shows loading and errors without starting concurrent requests', async () => {
+    let reject;
+    const router = { get: jest.fn().mockReturnValue(new Promise((resolve, fail) => { reject = fail; })) };
+    render(<LogExplorer router={router} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading logs');
+    fireEvent.click(screen.getByText('Loading...'));
+    expect(router.get).toHaveBeenCalledTimes(1);
+    reject(new Error('Permission denied'));
+    await screen.findByText('Permission denied');
+    expect(screen.getByText('Refresh')).toBeEnabled();
+});
 
-        fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'queue' } });
-
-        await waitFor(() => {
-            expect(screen.getByText(/Queue logs unavailable for current environment./i)).toBeInTheDocument();
-        });
-    });
-
-    test('virtualized list limits rendered line rows for large datasets', async () => {
-        const lines = Array.from({ length: 50000 }, (_, i) => `2026-08-01 12:00:${String(i % 60).padStart(2, '0')} INFO line ${i}`);
-        const router = getRouter(() => Promise.resolve({
-            response: {
-                data: [{ file: 'api/access.log', contents: lines }]
-            }
-        }));
-
-        render(<LogExplorer router={router} refreshToken={0} />);
-
-        await waitFor(() => {
-            expect(screen.getByText(/1200 visible lines/i)).toBeInTheDocument();
-        });
-
-        const renderedLineNodes = document.querySelectorAll('.log-line');
-        expect(renderedLineNodes.length).toBeLessThan(200);
-    });
-
-    test('supports newest-first toggle and time filtering', async () => {
-        const router = getRouter(() => Promise.resolve({
-            response: {
-                data: [
-                    {
-                        file: 'api/access.log',
-                        contents: [
-                            '2026-08-01 12:00:00 INFO line 0',
-                            '2026-08-01 12:00:01 INFO line 1',
-                            '2026-08-01 12:00:02 INFO line 2',
-                        ]
-                    }
-                ]
-            }
-        }));
-
-        render(<LogExplorer router={router} refreshToken={0} />);
-
-        await waitFor(() => {
-            expect(screen.getByText(/3 visible lines/i)).toBeInTheDocument();
-        });
-
-        await waitFor(() => {
-            const firstRowBeforeToggle = document.querySelector('.log-line-text');
-            expect(firstRowBeforeToggle?.textContent || '').toMatch(/line 2/i);
-        });
-
-        fireEvent.click(screen.getByLabelText(/Newest first/i));
-
-        await waitFor(() => {
-            const firstRowAfterToggle = document.querySelector('.log-line-text');
-            expect(firstRowAfterToggle?.textContent || '').toMatch(/line 0/i);
-        });
-
-        fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '2026-08-01T12:00:01' } });
-
-        await waitFor(() => {
-            expect(screen.getByText(/2 visible lines/i)).toBeInTheDocument();
-        });
-    });
-
-    test('discovers mixed log files dynamically and allows selecting rotated file by source metadata', async () => {
-        const router = getRouter((route, params) => {
-            if (params?.file === 'api/20260801-1200-01-access.log.gz') {
-                return Promise.resolve({
-                    response: {
-                        data: [
-                            { file: 'api/access.log', contents: ['current access'] },
-                            { file: 'api/error.log', contents: ['current error'] },
-                            { file: 'api/queue.log', contents: ['queue bridge'] },
-                            { file: 'api/access.log.txt', contents: ['text copy'] },
-                            { file: 'api/20260801-1200-01-access.log.gz', contents: ['rotated compressed line'] },
-                        ]
-                    }
-                });
-            }
-
-            return Promise.resolve({
-                response: {
-                    data: [
-                        { file: 'api/access.log', contents: ['current access'] },
-                        { file: 'api/error.log', contents: ['current error'] },
-                        { file: 'api/queue.log', contents: ['queue bridge'] },
-                        { file: 'api/access.log.txt', contents: ['text copy'] },
-                        { file: 'api/20260801-1200-01-access.log.gz', contents: ['rotated compressed line'] },
-                    ]
-                }
-            });
-        });
-
-        render(<LogExplorer router={router} refreshToken={0} />);
-
-        await waitFor(() => {
-            expect(screen.getByLabelText('Log File')).toBeInTheDocument();
-        });
-
-        const fileSelector = screen.getByLabelText('Log File');
-        let optionValues = [];
-
-        await waitFor(() => {
-            optionValues = Array.from(fileSelector.querySelectorAll('option')).map(item => item.textContent || '');
-            expect(optionValues.length).toBeGreaterThan(1);
-        });
-
-        expect(optionValues.some(value => value.includes('access.log'))).toBe(true);
-        expect(optionValues.some(value => value.includes('error.log'))).toBe(true);
-        expect(optionValues.some(value => value.includes('queue.log'))).toBe(true);
-        expect(optionValues.some(value => value.includes('access.log.txt'))).toBe(true);
-        expect(optionValues.some(value => value.includes('20260801-1200-01-access.log.gz'))).toBe(true);
-        expect(optionValues.some(value => value.includes('(API)'))).toBe(true);
-
-        fireEvent.change(fileSelector, { target: { value: 'api/20260801-1200-01-access.log.gz' } });
-
-        await waitFor(() => {
-            expect(screen.getByText(/File: api\/20260801-1200-01-access.log.gz/i)).toBeInTheDocument();
-        });
-    });
+test('preserves order and time/search filtering in more options', async () => {
+    const router = { get: jest.fn().mockResolvedValue(response(files)) };
+    render(<LogExplorer router={router} />);
+    await screen.findByText('2 visible lines of 2');
+    expect(document.querySelector('.log-line-text')).toHaveTextContent('second');
+    fireEvent.click(screen.getByLabelText('Newest first'));
+    expect(document.querySelector('.log-line-text')).toHaveTextContent('first');
+    fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '2026-08-01T12:00:01' } });
+    await waitFor(() => expect(screen.getByText('1 visible lines of 2')).toBeInTheDocument());
+    expect(document.querySelector('.log-line-text')).toHaveTextContent('second');
 });

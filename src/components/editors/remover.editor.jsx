@@ -44,6 +44,8 @@ const Remover = ({
     const router = useRouter();
     const [response, setResponse] = React.useState(null);
     const [resMessage, setMessage] = React.useState({});
+    const [deleting, setDeleting] = React.useState(false);
+    const deletingRef = React.useRef(false);
 
     /**
      * Handle completion of deletion.
@@ -52,6 +54,10 @@ const Remover = ({
      */
 
     const _handleCompletion = (res) => {
+        if (!res?.success) {
+            setMessage({ ...res?.response?.message, msg: res?.response?.message?.msg || 'Unable to delete this record.', type: 'error' });
+            return;
+        }
         const {response = {}} = res || {};
         const {message={}} = response || {};
         setResponse(response);
@@ -68,10 +74,24 @@ const Remover = ({
      * @private
      */
 
-    const _handleSubmit = (e) => {
+    const _handleSubmit = async (e) => {
         if (!e) return;
         e.preventDefault();
-        router.remove(id, model, _handleCompletion);
+        if (deletingRef.current) return;
+        deletingRef.current = true;
+        setDeleting(true);
+        setMessage({});
+        try {
+            const result = await router.remove(id, model, _handleCompletion);
+            if (!result) {
+                setMessage({ msg: 'Unable to delete this record. The API may be unavailable.', type: 'error' });
+            }
+        } catch (err) {
+            setMessage({ msg: err?.message || 'Unable to delete this record.', type: 'error' });
+        } finally {
+            deletingRef.current = false;
+            setDeleting(false);
+        }
     }
 
     return <>{
@@ -106,6 +126,8 @@ const Remover = ({
                 </div>
             </div>
             : <div className={'alert-box'}>
+                {resMessage?.msg && <UserMessage closeable={false} message={resMessage} />}
+                {deleting && <p role={'status'}>Deleting {modelLabel}...</p>}
                 <p>Please confirm the deletion of this {modelLabel}:</p>
                 <Accordion label={'Details'} open={false} type={model}>
                     <MetadataView model={model} metadata={metadata} />
@@ -117,15 +139,18 @@ const Remover = ({
                 </p>
                 <div className={'alert-box-buttons'}>
                     <Button
-                        icon={'success'}
+                        icon={deleting ? 'spinner' : 'success'}
+                        spin={deleting}
+                        disabled={deleting}
                         className={'submit'}
-                        label={'Delete'}
+                        label={deleting ? 'Deleting...' : 'Delete'}
                         onClick={_handleSubmit}
                     />
                     <Button
                         icon={'cancel'}
                         className={'cancel'}
                         label={'Cancel'}
+                        disabled={deleting}
                         onClick={onCancel}
                     />
                 </div>
@@ -134,5 +159,4 @@ const Remover = ({
 }
 
 export default React.memo(Remover);
-
 

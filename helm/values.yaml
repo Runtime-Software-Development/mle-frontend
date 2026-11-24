@@ -138,6 +138,19 @@ service:
   port: 80
   targetPort: 8080
 
+issuer:
+  enabled: false
+  name: letsencrypt-http01
+  email: ""
+  server: https://acme-v02.api.letsencrypt.org/directory
+  privateKeySecretName: letsencrypt-http01-account-key
+
+customDomainIngress:
+  enabled: false
+  host: ""
+  issuerName: letsencrypt-http01
+  tlsSecretName: ""
+
 ingress:
   enabled: true
   className: "traefik"

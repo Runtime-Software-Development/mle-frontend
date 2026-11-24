@@ -1,0 +1,29 @@
+{{- if .Values.customDomainIngress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "mle-frontend.fullname" . }}-custom-domain
+  labels:
+    {{- include "mle-frontend.labels" . | nindent 4 }}
+  annotations:
+    cert-manager.io/issuer: {{ .Values.customDomainIngress.issuerName }}
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - hosts:
+        - {{ .Values.customDomainIngress.host | quote }}
+      secretName: {{ .Values.customDomainIngress.tlsSecretName }}
+  rules:
+    - host: {{ .Values.customDomainIngress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "mle-frontend.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}
