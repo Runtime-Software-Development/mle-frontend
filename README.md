@@ -119,6 +119,7 @@ For a full local deployment that builds the frontend and runs the API and queue,
 - **API requests fail or 404** — Confirm the MLE API is running at the URL in `REACT_APP_API_BASEURL` and CORS allows your frontend origin.
 - **Changes to `.env` not applied** — Restart `npm start` (or the Docker container); Create React App only reads env at startup.
 - **Docker build or run issues** — Ensure Docker and Docker Compose are up to date and that `.env` exists if the compose file references it.
+- **Dependency audit blocks CI** — Reproduce the container workflow with `npm ci` followed by `npm audit --audit-level=high --omit=dev`. Commit both `package.json` and `package-lock.json` when updating dependencies. Security overrides keep Browserslist at 4.28.7 or newer and baseline-browser-mapping at 2.11.0 or newer; React Router requires 7.18.0 or newer. The workflow audits production dependencies; an unfiltered `npm audit` also reports development-tooling findings and must be evaluated separately.
 
 ## Getting started (quick reference)
 ------------------------------------
@@ -269,4 +270,3 @@ Developed and maintained by Runtime Software Development Inc.
 --------------
 
 The MLE app repository is located at [https://github.com/scrose/mle-api](https://github.com/scrose/mle-api).
-
